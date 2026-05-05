@@ -1,0 +1,41 @@
+name: tractar
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 🔌 API
+  http: ^1.2.1
+
+  # 🎨 UI
+  cupertino_icons: ^1.0.8
+
+  # 📊 GRÁFICAS
+  fl_chart: ^0.68.0
+
+  # 📥 DESCARGA EXCEL
+  dio: ^5.4.0
+  path_provider: ^2.1.2
+  open_filex: ^4.4.0
+
+  # 🌓 TEMA Y ESTADO
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/tractar_logo_bg.png
