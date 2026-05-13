@@ -6,6 +6,13 @@ from sqlalchemy import create_engine, text
 from io import BytesIO
 from openpyxl import Workbook
 
+# NUEVO
+import os
+from dotenv import load_dotenv
+
+# Cargar variables del .env
+load_dotenv()
+
 app = FastAPI()
 
 app.add_middleware(
@@ -16,9 +23,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATABASE_URL = "mysql+pymysql://root:@localhost:3306/tractar"
-engine = create_engine(DATABASE_URL)
+# NUEVO: leer DATABASE_URL desde .env
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+engine = create_engine(DATABASE_URL)
 # =========================
 # MODELOS
 # =========================
