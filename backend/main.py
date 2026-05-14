@@ -62,7 +62,7 @@ class TripRequest(BaseModel):
     driver_id: int | None = None
     origen: str
     destino: str
-    vehiculo: str
+    vehiculo: str | None = None
     flete: str | None = None
 
 
@@ -713,3 +713,85 @@ def update_vehicle(vehicle_id: int, data: dict = Body(...)):
         )
 
     return {"success": True, "message": "Vehículo actualizado"}
+
+# =========================
+# TRACTÁ — VEHÍCULOS SIN AFILIAR
+# =========================
+@app.get("/vehicles/{user_id}/sin-afiliar")
+def get_vehicles_sin_afiliar(user_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT id, placa, marca, modelo, color, apodo
+                FROM vehicles
+                WHERE user_id = :user_id
+                  AND (driver_id IS NULL OR driver_id = 0)
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "vehicles": result}
+
+
+# =========================
+# TRACTÁ — VEHÍCULOS AFILIADOS (con conductor)
+# =========================
+@app.get("/vehicles/{user_id}/afiliados")
+def get_vehicles_afiliados(user_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT v.id, v.placa, v.marca, v.modelo, v.color, v.apodo,
+                       v.driver_id, u.username AS driver_username
+                FROM vehicles v
+                JOIN users u ON u.id = v.driver_id
+                WHERE v.user_id = :user_id
+                  AND v.driver_id IS NOT NULL
+                  AND v.driver_id != 0
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "vehicles": result}
+
+
+# =========================
+# TRACTÁ — VIAJES SIN ASIGNAR
+# =========================
+@app.get("/trips/{user_id}/sin-asignar")
+def get_trips_sin_asignar(user_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT id, origen, destino, flete, trip_status
+                FROM trips
+                WHERE user_id = :user_id
+                  AND (trip_status IS NULL OR trip_status = 'Pendiente')
+                  AND (driver_id IS NULL OR driver_id = 0)
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "trips": result}
+
+
+# =========================
+# HISTORIAL DE TRACTÁS
+# =========================
+@app.get("/tractas/{user_id}")
+def get_tractas(user_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT t.id, t.origen, t.destino, t.vehiculo, t.flete,
+                       t.trip_status, u.username AS driver
+                FROM trips t
+                LEFT JOIN users u ON u.id = t.driver_id
+                WHERE t.user_id = :user_id
+                  AND t.trip_status IN ('Asignado', 'En ruta', 'Finalizado', 'Cancelado')
+                ORDER BY t.id DESC
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "tractas": result}
