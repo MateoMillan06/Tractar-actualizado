@@ -583,11 +583,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                 children: [
                                   isMobile
                                       ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                          _sectionTitle("Mis viajes", Icons.route),
+                                          _sectionTitle("Mis tractás", Icons.route),
                                           _tripFilter(),
                                         ])
                                       : Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                          _sectionTitle("Mis viajes", Icons.route),
+                                          _sectionTitle("Mis tractás", Icons.route),
                                           _tripFilter(),
                                         ]),
                                   SizedBox(height: isMobile ? 14 : 8),

@@ -15,7 +15,6 @@ class _DriversScreenState extends State<DriversScreen> {
 
   List<dynamic> allDrivers = [];
   List<dynamic> filteredDrivers = [];
-
   bool loading = true;
 
   @override
@@ -24,16 +23,9 @@ class _DriversScreenState extends State<DriversScreen> {
     loadDrivers();
   }
 
-  // =========================
-  // 🔄 CARGAR CONDUCTORES
-  // =========================
   Future<void> loadDrivers() async {
-    setState(() {
-      loading = true;
-    });
-
+    setState(() => loading = true);
     final drivers = await ApiService.getDrivers();
-
     setState(() {
       allDrivers = drivers;
       filteredDrivers = drivers;
@@ -41,9 +33,6 @@ class _DriversScreenState extends State<DriversScreen> {
     });
   }
 
-  // =========================
-  // 🔍 FILTRO
-  // =========================
   void filterDrivers(String value) {
     setState(() {
       filteredDrivers = allDrivers.where((driver) {
@@ -55,110 +44,13 @@ class _DriversScreenState extends State<DriversScreen> {
     });
   }
 
-  // =========================
-  // 🚗 AFILIAR CONDUCTOR
-  // =========================
-  Future<void> showAssignDialog(int driverId, String status) async {
-    // Bloquear si el conductor está Inactivo
-    if (status == "Inactivo") {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.block, color: Colors.red),
-              SizedBox(width: 10),
-              Text("No disponible"),
-            ],
-          ),
-          content: const Text(
-            "En estos momentos el conductor No se puede afiliar.",
-            style: TextStyle(fontSize: 15),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Entendido"),
-            ),
-          ],
-        ),
-      );
-      return;
+  Color _statusColor(String status) {
+    switch (status) {
+      case "Disponible": return const Color(0xFF27AE60);
+      case "En viaje":   return const Color(0xFFF39C12);
+      case "Inactivo":   return const Color(0xFFE74C3C);
+      default:           return Colors.grey;
     }
-    final vehicles = await ApiService.getVehicles();
-    int? selectedVehicleId;
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Afiliar conductor"),
-        content: DropdownButtonFormField<int>(
-          items: vehicles.map((v) {
-            return DropdownMenuItem<int>(
-              value: v["id"],
-              child: Text("${v["placa"]} - ${v["marca"]}"),
-            );
-          }).toList(),
-          onChanged: (v) => selectedVehicleId = v,
-          decoration: const InputDecoration(
-            labelText: "Selecciona vehículo",
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (selectedVehicleId == null) return;
-
-              // Punto 4: confirmación antes de afiliar
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text("¿Confirmar afiliación?"),
-                  content: const Text(
-                    "Se afiliará este conductor al vehículo seleccionado.",
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text("Cancelar"),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text("Afiliar"),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm != true) return;
-
-              final result = await ApiService.assignDriver(
-                driverId,
-                selectedVehicleId!,
-              );
-
-              if (!mounted) return;
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(result["message"] ?? "Proceso completado"),
-                  backgroundColor: result["success"] == true
-                      ? Colors.green.shade700
-                      : Colors.red.shade700,
-                ),
-              );
-              await loadDrivers();
-            },
-            child: const Text("Guardar"),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -175,7 +67,7 @@ class _DriversScreenState extends State<DriversScreen> {
                     child: Column(
                       children: [
                         const Text(
-                          "Gestión de conductores 👨‍✈️",
+                          "Conductores 👨‍✈️",
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
@@ -184,9 +76,6 @@ class _DriversScreenState extends State<DriversScreen> {
 
                         const SizedBox(height: 24),
 
-                        // =========================
-                        // 🔍 BUSCADOR
-                        // =========================
                         LiquidGlassCard(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -204,53 +93,47 @@ class _DriversScreenState extends State<DriversScreen> {
 
                         const SizedBox(height: 24),
 
-                        // =========================
-                        // LISTA
-                        // =========================
                         Expanded(
                           child: filteredDrivers.isEmpty
-                              ? const Center(
-                                  child: Text("No hay conductores"),
-                                )
+                              ? const Center(child: Text("No hay conductores registrados"))
                               : ListView.builder(
                                   itemCount: filteredDrivers.length,
                                   itemBuilder: (context, index) {
                                     final driver = filteredDrivers[index];
-
-                                    final name =
-                                        driver["username"] ?? "-";
-                                    final status =
-                                        driver["status"] ?? "Sin estado";
+                                    final name   = driver["username"] ?? "-";
+                                    final status = driver["status"] ?? "Sin estado";
 
                                     return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 16),
+                                      padding: const EdgeInsets.only(bottom: 16),
                                       child: LiquidGlassCard(
                                         child: ListTile(
-                                          leading: const Icon(
-                                            Icons.person,
-                                            color: Colors.white,
-                                          ),
-                                          title: Text(name),
-                                          subtitle:
-                                              Text("Estado: $status"),
-
-                                          // =========================
-                                          // BOTÓN AFILIAR
-                                          // =========================
-                                          trailing: ElevatedButton(
-                                            onPressed: () =>
-                                                showAssignDialog(
-                                              driver["id"],
-                                              driver["status"] ?? "",
+                                          leading: CircleAvatar(
+                                            backgroundColor: const Color(0xFF4B2E83),
+                                            child: Text(
+                                              name.isNotEmpty ? name[0].toUpperCase() : "?",
+                                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                             ),
-                                            style: (driver["status"] ?? "") == "Inactivo"
-                                                ? ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.grey.shade700,
-                                                    foregroundColor: Colors.white54,
-                                                  )
-                                                : null,
-                                            child: const Text("Afiliar"),
+                                          ),
+                                          title: Text(
+                                            name,
+                                            style: const TextStyle(fontWeight: FontWeight.w600),
+                                          ),
+                                          subtitle: Text("Estado: $status"),
+                                          trailing: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            decoration: BoxDecoration(
+                                              color: _statusColor(status).withOpacity(0.18),
+                                              border: Border.all(color: _statusColor(status).withOpacity(0.5)),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              status,
+                                              style: TextStyle(
+                                                color: _statusColor(status),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
