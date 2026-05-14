@@ -453,3 +453,69 @@ class ApiService {
     }
   }
 }
+  // =========================
+  // TRACTÁ — VEHÍCULOS SIN AFILIAR
+  // =========================
+  static Future<List<dynamic>> getVehiclesSinAfiliar() async {
+    try {
+      final r = await http.get(
+        Uri.parse("$baseUrl/vehicles/${Session.userId}/sin-afiliar"),
+      );
+      final data = jsonDecode(r.body);
+      if (data is List) return data;
+      if (data["success"] == true) return data["vehicles"] ?? [];
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // =========================
+  // TRACTÁ — VEHÍCULOS AFILIADOS (con conductor)
+  // =========================
+  static Future<List<dynamic>> getVehiclesAfiliados() async {
+    try {
+      final r = await http.get(
+        Uri.parse("$baseUrl/vehicles/${Session.userId}/afiliados"),
+      );
+      final data = jsonDecode(r.body);
+      if (data is List) return data;
+      if (data["success"] == true) return data["vehicles"] ?? [];
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // =========================
+  // TRACTÁ — VIAJES SIN ASIGNAR
+  // =========================
+  static Future<List<dynamic>> getTripsSinAsignar() async {
+    try {
+      final r = await http.get(
+        Uri.parse("$baseUrl/trips/${Session.userId}/sin-asignar"),
+      );
+      final data = jsonDecode(r.body);
+      if (data is List) return data;
+      if (data["success"] == true) return data["trips"] ?? [];
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // =========================
+  // HISTORIAL DE TRACTÁS
+  // =========================
+  static Future<List<dynamic>> getTractas() async {
+    try {
+      final r = await http.get(
+        Uri.parse("$baseUrl/tractas/${Session.userId}"),
+      );
+      final data = jsonDecode(r.body);
+      if (data["success"] == true) return data["tractas"] ?? [];
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }

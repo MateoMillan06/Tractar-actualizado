@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/session.dart';
 import '../providers/theme_provider.dart';
+import '../services/api_service.dart';
 
 // ── Widget avatar reutilizable ─────────────────────────────────
 class UserAvatar extends StatelessWidget {
@@ -71,8 +72,27 @@ class UserAvatar extends StatelessWidget {
 }
 
 // ── Panel lateral de perfil ────────────────────────────────────
-class _UserProfilePanel extends StatelessWidget {
+class _UserProfilePanel extends StatefulWidget {
   const _UserProfilePanel();
+
+  @override
+  State<_UserProfilePanel> createState() => _UserProfilePanelState();
+}
+
+class _UserProfilePanelState extends State<_UserProfilePanel> {
+  List<dynamic> _tractas = [];
+  bool _loadingTractas = false;
+  bool _tractasExpanded = false;
+
+  Future<void> _loadTractas() async {
+    if (_loadingTractas) return;
+    setState(() { _loadingTractas = true; });
+    final result = await ApiService.getTractas();
+    setState(() {
+      _tractas = result;
+      _loadingTractas = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -222,6 +242,106 @@ class _UserProfilePanel extends StatelessWidget {
                           );
                         },
                       ),
+
+                      const SizedBox(height: 20),
+
+                      // ── Historial de Tractás ───────────────
+                      if (Session.role != "conductor") ...[
+                        Divider(color: divColor),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () {
+                            setState(() => _tractasExpanded = !_tractasExpanded);
+                            if (_tractasExpanded) _loadTractas();
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Row(
+                              children: [
+                                Icon(Icons.local_shipping_outlined, color: subColor, size: 20),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    "Historial de Tractás",
+                                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                                  ),
+                                ),
+                                Icon(
+                                  _tractasExpanded ? Icons.expand_less : Icons.expand_more,
+                                  color: subColor, size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_tractasExpanded) ...[
+                          const SizedBox(height: 8),
+                          if (_loadingTractas)
+                            const Center(child: SizedBox(width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2)))
+                          else if (_tractas.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text("No hay tractás registradas",
+                                style: TextStyle(color: subColor, fontSize: 12)),
+                            )
+                          else
+                            SizedBox(
+                              height: 180,
+                              child: ListView.builder(
+                                itemCount: _tractas.length,
+                                itemBuilder: (_, i) {
+                                  final t = _tractas[i] as Map;
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.06),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Tractá #${t['id'] ?? '?'}",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: color,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "${t['origen'] ?? '-'} → ${t['destino'] ?? '-'}",
+                                          style: const TextStyle(fontSize: 12, color: Colors.white),
+                                        ),
+                                        Text(
+                                          "Conductor: ${t['driver'] ?? '-'}  •  Vehículo: ${t['vehiculo'] ?? '-'}",
+                                          style: TextStyle(fontSize: 11, color: subColor),
+                                        ),
+                                        if (t['flete'] != null && t['flete'].toString().isNotEmpty)
+                                          Text("Flete: \$${t['flete']}",
+                                            style: TextStyle(fontSize: 11, color: subColor)),
+                                        Text(
+                                          "Estado: ${t['trip_status'] ?? '-'}",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: (t['trip_status'] == 'Finalizado')
+                                                ? Colors.green
+                                                : subColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
+                        const SizedBox(height: 4),
+                      ],
 
                       const Spacer(),
 
