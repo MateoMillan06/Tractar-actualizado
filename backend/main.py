@@ -22,6 +22,10 @@ app.add_middleware(
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Verificar que exista
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL no está configurada")
+
 # IMPORTANTE PARA RAILWAY
 if DATABASE_URL.startswith("mysql://"):
     DATABASE_URL = DATABASE_URL.replace(
