@@ -5,12 +5,9 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 from io import BytesIO
 from openpyxl import Workbook
-
-# NUEVO
 import os
 from dotenv import load_dotenv
 
-# Cargar variables del .env
 load_dotenv()
 
 app = FastAPI()
@@ -23,8 +20,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# NUEVO: leer DATABASE_URL desde .env
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+# IMPORTANTE PARA RAILWAY
+if DATABASE_URL.startswith("mysql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "mysql://",
+        "mysql+pymysql://",
+        1
+    )
 
 engine = create_engine(DATABASE_URL)
 # =========================
