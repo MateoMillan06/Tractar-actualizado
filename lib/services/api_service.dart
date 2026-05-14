@@ -9,8 +9,9 @@ import '../models/session.dart';
 
 class ApiService {
   
-  static const String baseUrl = "https://petty-thousand-nutty.ngrok-free.dev";
-
+  static const String baseUrl =
+    "https://tractar-actualizado-production.up.railway.app";
+    
   // =========================
   // LOGIN
   // =========================
