@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/liquid_background.dart';
 import '../widgets/liquid_glass_card.dart';
+import 'navigation_example.dart';
 
 class TractaSuccessScreen extends StatefulWidget {
   final int tractaNum;
@@ -44,8 +45,11 @@ class _TractaSuccessScreenState extends State<TractaSuccessScreen>
   }
 
   void _irAlHome() {
-    // Vuelve al NavigationExample (home de propietarios), NO al login
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    // Reemplaza todo el stack y va al Home de Propietarios
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const NavigationExample()),
+      (route) => false,
+    );
   }
 
   @override
