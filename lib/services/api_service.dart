@@ -315,6 +315,23 @@ class ApiService {
     return r.statusCode == 200;
   }
 
+  // Versión que retorna el mensaje completo (para mostrar errores)
+  static Future<Map<String, dynamic>> addVehicleDetailed(Map<String, dynamic> v) async {
+    try {
+      v["user_id"] = Session.userId;
+      final r = await http.post(
+        Uri.parse("$baseUrl/vehicles"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(v),
+      );
+      final data = jsonDecode(r.body);
+      if (data is Map<String, dynamic>) return data;
+      return {"success": r.statusCode == 200};
+    } catch (_) {
+      return {"success": false, "message": "Error de conexión con el servidor"};
+    }
+  }
+
   static Future<bool> addTrip(Map<String, dynamic> t) async {
     t["user_id"] = Session.userId;
 
@@ -452,7 +469,7 @@ class ApiService {
       return null;
     }
   }
-}
+
   // =========================
   // TRACTÁ — VEHÍCULOS SIN AFILIAR
   // =========================
@@ -519,3 +536,4 @@ class ApiService {
       return [];
     }
   }
+}

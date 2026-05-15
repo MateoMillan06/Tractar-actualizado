@@ -51,7 +51,6 @@ class _NavigationExampleState extends State<NavigationExample> {
     // Iconos y labels siempre blancos — fondo siempre oscuro en ambos modos
     const iconColor  = Colors.white;
     const labelColor = Colors.white;
-    const navColor   = Color(0xFF4B2E83); // solo para el indicador seleccionado
 
     final screens = [
       HomeScreen(key: ValueKey(refreshTick)),

@@ -407,6 +407,44 @@ def update_trip_status(trip_id: int, status: str):
 # =========================
 # VEHÍCULOS
 # =========================
+
+# ── Rutas específicas PRIMERO (antes del param genérico) ───────
+
+@app.get("/vehicles/{user_id}/sin-afiliar")
+def get_vehicles_sin_afiliar_v2(user_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT id, placa, marca, modelo, color, apodo
+                FROM vehicles
+                WHERE user_id = :user_id
+                  AND (driver_id IS NULL OR driver_id = 0)
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "vehicles": result}
+
+
+@app.get("/vehicles/{user_id}/afiliados")
+def get_vehicles_afiliados_v2(user_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT v.id, v.placa, v.marca, v.modelo, v.color, v.apodo,
+                       v.driver_id, u.username AS driver_username
+                FROM vehicles v
+                JOIN users u ON u.id = v.driver_id
+                WHERE v.user_id = :user_id
+                  AND v.driver_id IS NOT NULL
+                  AND v.driver_id != 0
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "vehicles": result}
+
+
 @app.get("/vehicles/{user_id}")
 def get_vehicles(user_id: int):
     with engine.connect() as conn:
@@ -419,21 +457,51 @@ def get_vehicles(user_id: int):
 
 @app.post("/vehicles")
 def add_vehicle(v: VehicleRequest):
-    with engine.begin() as conn:
-        conn.execute(
-            text("""
-                INSERT INTO vehicles
-                (user_id,placa,marca,modelo,color,apodo)
-                VALUES (:user_id,:placa,:marca,:modelo,:color,:apodo)
-            """),
-            v.dict()
-        )
-    return {"success": True}
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO vehicles
+                    (user_id, placa, marca, modelo, color, apodo)
+                    VALUES (:user_id, :placa, :marca, :modelo, :color, :apodo)
+                """),
+                {
+                    "user_id": v.user_id,
+                    "placa": v.placa.strip().upper() if v.placa else v.placa,
+                    "marca":  v.marca,
+                    "modelo": v.modelo,
+                    "color":  v.color,
+                    "apodo":  v.apodo if v.apodo and v.apodo.strip() else None,
+                }
+            )
+        return {"success": True, "message": "Vehículo creado"}
+    except Exception as e:
+        msg = str(e)
+        if "Duplicate entry" in msg or "duplicate" in msg.lower():
+            return {"success": False, "message": "Ya existe un vehículo con esa placa"}
+        return {"success": False, "message": msg}
 
 
 # =========================
 # VIAJES
 # =========================
+@app.get("/trips/{user_id}/sin-asignar")
+def get_trips_sin_asignar_early(user_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT id, origen, destino, flete, trip_status
+                FROM trips
+                WHERE user_id = :user_id
+                  AND (trip_status IS NULL OR trip_status = '' OR trip_status = 'Pendiente')
+                  AND (driver_id IS NULL OR driver_id = 0)
+            """),
+            {"user_id": user_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "trips": result}
+
+
 @app.get("/trips/{user_id}")
 def get_trips(user_id: int):
     with engine.connect() as conn:
@@ -714,65 +782,6 @@ def update_vehicle(vehicle_id: int, data: dict = Body(...)):
 
     return {"success": True, "message": "Vehículo actualizado"}
 
-# =========================
-# TRACTÁ — VEHÍCULOS SIN AFILIAR
-# =========================
-@app.get("/vehicles/{user_id}/sin-afiliar")
-def get_vehicles_sin_afiliar(user_id: int):
-    with engine.connect() as conn:
-        rows = conn.execute(
-            text("""
-                SELECT id, placa, marca, modelo, color, apodo
-                FROM vehicles
-                WHERE user_id = :user_id
-                  AND (driver_id IS NULL OR driver_id = 0)
-            """),
-            {"user_id": user_id}
-        ).fetchall()
-        result = [dict(r._mapping) for r in rows]
-    return {"success": True, "vehicles": result}
-
-
-# =========================
-# TRACTÁ — VEHÍCULOS AFILIADOS (con conductor)
-# =========================
-@app.get("/vehicles/{user_id}/afiliados")
-def get_vehicles_afiliados(user_id: int):
-    with engine.connect() as conn:
-        rows = conn.execute(
-            text("""
-                SELECT v.id, v.placa, v.marca, v.modelo, v.color, v.apodo,
-                       v.driver_id, u.username AS driver_username
-                FROM vehicles v
-                JOIN users u ON u.id = v.driver_id
-                WHERE v.user_id = :user_id
-                  AND v.driver_id IS NOT NULL
-                  AND v.driver_id != 0
-            """),
-            {"user_id": user_id}
-        ).fetchall()
-        result = [dict(r._mapping) for r in rows]
-    return {"success": True, "vehicles": result}
-
-
-# =========================
-# TRACTÁ — VIAJES SIN ASIGNAR
-# =========================
-@app.get("/trips/{user_id}/sin-asignar")
-def get_trips_sin_asignar(user_id: int):
-    with engine.connect() as conn:
-        rows = conn.execute(
-            text("""
-                SELECT id, origen, destino, flete, trip_status
-                FROM trips
-                WHERE user_id = :user_id
-                  AND (trip_status IS NULL OR trip_status = 'Pendiente')
-                  AND (driver_id IS NULL OR driver_id = 0)
-            """),
-            {"user_id": user_id}
-        ).fetchall()
-        result = [dict(r._mapping) for r in rows]
-    return {"success": True, "trips": result}
 
 
 # =========================

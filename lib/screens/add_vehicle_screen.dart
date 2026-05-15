@@ -10,26 +10,37 @@ class AddVehicleScreen extends StatefulWidget {
 
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
-  final placa = TextEditingController();
-  final marca = TextEditingController();
+  final placa  = TextEditingController();
+  final marca  = TextEditingController();
   final modelo = TextEditingController();
-  final apodo = TextEditingController();
+  final apodo  = TextEditingController();
   String? color;
+  bool _loading = false;
 
   Future<void> guardar() async {
     if (!_formKey.currentState!.validate()) return;
+    setState(() => _loading = true);
 
-    final ok = await ApiService.addVehicle({
-      "placa": placa.text.trim().toUpperCase(),
-      "marca": marca.text.trim(),
+    final result = await ApiService.addVehicleDetailed({
+      "placa":  placa.text.trim().toUpperCase(),
+      "marca":  marca.text.trim(),
       "modelo": modelo.text.trim(),
-      "color": color,
-      "apodo": apodo.text.trim().isEmpty ? null : apodo.text.trim(),
+      "color":  color,
+      "apodo":  apodo.text.trim().isEmpty ? null : apodo.text.trim(),
     });
 
     if (!mounted) return;
-    if (ok) {
-      Navigator.pop(context);
+    setState(() => _loading = false);
+
+    if (result["success"] == true) {
+      Navigator.pop(context, true); // retorna true para que el llamador sepa que fue exitoso
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result["message"]?.toString() ?? "Error al guardar el vehículo"),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     }
   }
 
@@ -50,8 +61,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 decoration: const InputDecoration(labelText: "Placa"),
                 validator: (value) {
                   final v = value?.trim().toUpperCase() ?? '';
-                  final regex = RegExp(r'^[A-Z]{3}[0-9]{3}$');
                   if (v.isEmpty) return 'La placa es obligatoria';
+                  final regex = RegExp(r'^[A-Z]{3}[0-9]{3}$');
                   if (!regex.hasMatch(v)) return 'Formato válido: ABC123';
                   return null;
                 },
@@ -59,44 +70,37 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               TextFormField(
                 controller: marca,
                 decoration: const InputDecoration(labelText: "Marca"),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'La marca es obligatoria';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'La marca es obligatoria' : null,
               ),
               TextFormField(
                 controller: modelo,
                 decoration: const InputDecoration(labelText: "Modelo"),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El modelo es obligatorio';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'El modelo es obligatorio' : null,
               ),
               DropdownButtonFormField<String>(
-                items: ["Rojo", "Azul", "Blanco", "Negro"]
+                items: ["Rojo", "Azul", "Blanco", "Negro", "Gris", "Verde", "Amarillo"]
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
                 onChanged: (v) => color = v,
                 decoration: const InputDecoration(labelText: "Color"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'El color es obligatorio';
-                  }
-                  return null;
-                },
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'El color es obligatorio' : null,
               ),
               TextFormField(
                 controller: apodo,
-                decoration: const InputDecoration(labelText: "Apodo"),
+                decoration: const InputDecoration(labelText: "Apodo / Nombre (opcional)"),
               ),
               const SizedBox(height: 10),
               ElevatedButton(
-                onPressed: guardar,
-                child: const Text("Guardar"),
+                onPressed: _loading ? null : guardar,
+                child: _loading
+                    ? const SizedBox(
+                        height: 20, width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text("Guardar"),
               ),
             ],
           ),

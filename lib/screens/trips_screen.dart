@@ -18,147 +18,14 @@ class _TripsScreenState extends State<TripsScreen> {
     tripsFuture = ApiService.getTrips();
   }
 
-  Future<void> refreshTrips() async {
-    setState(() {
-      tripsFuture = ApiService.getTrips();
-    });
-  }
-
-  Future<void> showAssignDialog(Map<String, dynamic> trip) async {
-    final drivers = await ApiService.getDrivers();
-    final vehicles = await ApiService.getVehicles();
-
-    int? selectedDriverId;
-    int? selectedVehicleId;
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Asignar viaje"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<int>(
-              decoration: const InputDecoration(labelText: "Conductor"),
-              items: drivers
-                  .map(
-                    (d) => DropdownMenuItem<int>(
-                      value: d["id"],
-                      child: Text(d["username"]),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => selectedDriverId = v,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              decoration: const InputDecoration(labelText: "Vehículo"),
-              items: vehicles
-                  .map(
-                    (v) => DropdownMenuItem<int>(
-                      value: v["id"],
-                      child: Text(v["placa"]),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) => selectedVehicleId = v,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (selectedDriverId == null || selectedVehicleId == null) return;
-
-              // Punto 4: confirmación antes de asignar
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text("¿Confirmar asignación?"),
-                  content: const Text(
-                    "Se asignará el conductor y vehículo seleccionados a este viaje.",
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text("Cancelar"),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text("Asignar"),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm != true) return;
-
-              final result = await ApiService.assignTrip(
-                tripId: trip["id"],
-                driverId: selectedDriverId!,
-                vehicleId: selectedVehicleId!,
-              );
-
-              if (!mounted) return;
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(result["message"] ?? "Proceso completado"),
-                  backgroundColor: result["success"] == true
-                      ? Colors.green.shade700
-                      : Colors.red.shade700,
-                ),
-              );
-              if (result["success"] == true) refreshTrips();
-            },
-            child: const Text("Guardar"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 🔥 BOTÓN INTELIGENTE
-  Widget _buildTripAction(Map<String, dynamic> trip) {
-    final status = trip["trip_status"];
-
-    if (status == "Asignado" ||
-        status == "En ruta" ||
-        status == "Finalizado") {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.green.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Text(
-          "Este viaje ya se ha asignado",
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.green,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
+  Color _statusColor(String? status) {
+    switch (status) {
+      case "Asignado":   return const Color(0xFF5DADE2);
+      case "En ruta":    return const Color(0xFFF39C12);
+      case "Finalizado": return const Color(0xFF27AE60);
+      case "Cancelado":  return const Color(0xFFE74C3C);
+      default:           return Colors.white38;
     }
-
-    return ElevatedButton.icon(
-      onPressed: () => showAssignDialog(trip),
-      icon: const Icon(Icons.assignment),
-      label: const Text("Asignar"),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF4B2E83),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
   }
 
   @override
@@ -173,7 +40,23 @@ class _TripsScreenState extends State<TripsScreen> {
         final trips = snapshot.data!;
 
         if (trips.isEmpty) {
-          return const Center(child: Text("No hay viajes"));
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.route_outlined, color: Colors.white38, size: 52),
+                SizedBox(height: 16),
+                Text("No hay viajes registrados",
+                    style: TextStyle(color: Colors.white60)),
+                SizedBox(height: 8),
+                Text(
+                  "Agrega un viaje con el botón +\ny asígnalo desde \"Realizar Tractá\"",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white38, fontSize: 13),
+                ),
+              ],
+            ),
+          );
         }
 
         return ListView.builder(
@@ -181,6 +64,7 @@ class _TripsScreenState extends State<TripsScreen> {
           itemCount: trips.length,
           itemBuilder: (context, index) {
             final t = trips[index];
+            final status = t["trip_status"]?.toString();
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -190,26 +74,32 @@ class _TripsScreenState extends State<TripsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 🔥 TITULO
-                      Text(
-                        "${t["origen"]} → ${t["destino"]}",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4B2E83).withOpacity(0.25),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.route, color: Colors.white, size: 18),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              "${t["origen"]} → ${t["destino"]}",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
 
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
 
-                      Text(
-                        "Vehículo: ${t["vehiculo"] ?? "Sin asignar"}",
-                      ),
-                      Text(
-                        "Estado: ${t["trip_status"] ?? "Pendiente"}",
-                      ),
-
-                      if (t["flete"] != null &&
-                          t["flete"].toString().isNotEmpty)
+                      if (t["flete"] != null && t["flete"].toString().isNotEmpty)
                         Text(
                           "Flete: \$${t["flete"]}",
                           style: const TextStyle(
@@ -218,12 +108,37 @@ class _TripsScreenState extends State<TripsScreen> {
                           ),
                         ),
 
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
 
-                      // 🔥 ACCIÓN
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: _buildTripAction(t),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: _statusColor(status).withOpacity(0.15),
+                              border: Border.all(color: _statusColor(status).withOpacity(0.4)),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              (status == null || status.isEmpty) ? "Pendiente" : status,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _statusColor(status),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          if (status != null && status != "Pendiente" && status.isNotEmpty)
+                            Text(
+                              "Asignado via Tractá",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.white38,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
