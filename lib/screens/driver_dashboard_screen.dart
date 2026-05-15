@@ -18,6 +18,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   String selectedStatus = "Todos";
   String? selectedPlaca;
   String _statusLaboral = "Disponible";
+  int _selectedTractaIndex = 0;  // Para vehículo dinámico por tractá
   late Future<List<dynamic>> dashboardFuture;
 
   static const _purple = Color(0xFF4B2E83);
@@ -40,7 +41,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     dashboardFuture = Future.wait([
       ApiService.getDriverDashboard(),
       ApiService.getDriverKpis(),
-      ApiService.getDriverTrips(status: selectedStatus),
+      ApiService.getDriverTractas(),
     ]);
   }
 
@@ -184,44 +185,60 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
-  // ─── VEHICLE CONTENT ────────────────────────────────────────
-  Widget _vehicleContent(List<dynamic> vehicles) {
-    if (vehicles.isEmpty) {
+  // ─── VEHICLE CONTENT — vehículo dinámico según tractá ──────
+  Widget _vehicleContent(List<dynamic> tractas) {
+    final withVehicle = tractas.where((t) => t["placa"] != null).toList();
+    if (withVehicle.isEmpty) {
       return Padding(
         padding: const EdgeInsets.only(top: 8),
-        child: Text("No tienes vehículo asignado", style: TextStyle(color: Colors.white.withOpacity(0.6))),
+        child: Text("No tienes vehículo asignado",
+            style: TextStyle(color: Colors.white.withOpacity(0.6))),
       );
     }
-    final placa = selectedPlaca ?? vehicles[0]["placa"].toString();
-    final v = vehicles.firstWhere((v) => v["placa"].toString() == placa, orElse: () => vehicles[0]);
+    // Seleccionar tractá dentro del rango
+    final idx = _selectedTractaIndex.clamp(0, withVehicle.length - 1);
+    final t = withVehicle[idx] as Map;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.18)),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: placa,
-              dropdownColor: const Color(0xFF243B55),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              items: vehicles.map<DropdownMenuItem<String>>((v) =>
-                DropdownMenuItem<String>(value: v["placa"].toString(), child: Text(v["placa"].toString()))
-              ).toList(),
-              onChanged: (value) => setState(() => selectedPlaca = value),
+        // Selector de tractá (si hay más de una)
+        if (withVehicle.length > 1) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.18)),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                isExpanded: true,
+                value: idx,
+                dropdownColor: const Color(0xFF243B55),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                items: withVehicle.asMap().entries.map((e) {
+                  final i = e.key;
+                  final tt = e.value as Map;
+                  return DropdownMenuItem<int>(
+                    value: i,
+                    child: Text("Tractá #${tt["id"]} · ${tt["placa"] ?? "-"}",
+                        overflow: TextOverflow.ellipsis),
+                  );
+                }).toList(),
+                onChanged: (v) => setState(() => _selectedTractaIndex = v ?? 0),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        _vehicleRow(Icons.pin, "Placa", v["placa"] ?? "-"),
-        _vehicleRow(Icons.directions_car, "Marca", v["marca"] ?? "-"),
-        _vehicleRow(Icons.build, "Modelo", v["modelo"] ?? "-"),
-        _vehicleRow(Icons.person, "Propietario", v["propietario"] ?? "-"),
+          const SizedBox(height: 16),
+        ],
+        _vehicleRow(Icons.pin, "Placa", t["placa"] ?? "-"),
+        _vehicleRow(Icons.label, "Apodo",
+            t["apodo"]?.isNotEmpty == true ? t["apodo"] : "Sin apodo"),
+        _vehicleRow(Icons.directions_car, "Marca", t["marca"] ?? "-"),
+        _vehicleRow(Icons.build, "Modelo", t["modelo"] ?? "-"),
+        _vehicleRow(Icons.palette, "Color", t["color"] ?? "-"),
+        _vehicleRow(Icons.person, "Propietario", t["propietario"] ?? "-"),
       ],
     );
   }
@@ -417,7 +434,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
             final vehicles  = (snapshot.data![0] as List?) ?? [];
             final kpis      = snapshot.data![1] as Map? ?? {};
-            final trips     = (snapshot.data![2] as List?) ?? [];
+            final tractas   = (snapshot.data![2] as List?) ?? [];
+            // Filtrar tractás por estado seleccionado
+            final trips = selectedStatus == "Todos"
+                ? tractas
+                : tractas.where((t) => t["trip_status"] == selectedStatus).toList();
             final active    = (kpis["active"]    ?? 0) as int;
             final completed = (kpis["completed"] ?? 0) as int;
             final cancelled = (kpis["cancelled"] ?? 0) as int;
@@ -548,7 +569,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   LiquidGlassCard(child: Padding(padding: const EdgeInsets.all(20),
                                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                       _sectionTitle("Vehículo asignado", Icons.local_shipping),
-                                      _vehicleContent(vehicles),
+                                      _vehicleContent(tractas),
                                     ]),
                                   )),
                                 ])
@@ -565,7 +586,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   Expanded(flex: 4, child: LiquidGlassCard(child: Padding(padding: const EdgeInsets.all(24),
                                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                       _sectionTitle("Vehículo asignado", Icons.local_shipping),
-                                      _vehicleContent(vehicles),
+                                      _vehicleContent(tractas),
                                     ]),
                                   ))),
                                 ]),

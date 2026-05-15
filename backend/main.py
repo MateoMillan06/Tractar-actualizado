@@ -195,40 +195,44 @@ def get_drivers():
 
 
 # =========================
-# AFILIAR CONDUCTOR
+# AFILIAR CONDUCTOR (múltiples por vehículo, múltiples por conductor)
 # =========================
 @app.post("/assign-driver")
 def assign_driver(data: AssignDriverRequest):
     with engine.begin() as conn:
+        # Crear tabla vehicle_driver si no existe
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS vehicle_driver (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                vehicle_id INT NOT NULL,
+                driver_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_vd (vehicle_id, driver_id)
+            )
+        """))
 
+        # Verificar si ya existe esa afiliación
         existing = conn.execute(
-            text("""
-                SELECT driver_id
-                FROM vehicles
-                WHERE id = :vehicle_id
-            """),
-            {"vehicle_id": data.vehicle_id}
+            text("SELECT id FROM vehicle_driver WHERE vehicle_id=:v AND driver_id=:d"),
+            {"v": data.vehicle_id, "d": data.driver_id}
         ).fetchone()
 
-        if existing and existing._mapping["driver_id"] == data.driver_id:
-            return {
-                "success": False,
-                "message": "Este conductor ya está afiliado a este vehículo"
-            }
+        if existing:
+            return {"success": False, "message": "Este conductor ya está afiliado a este vehículo"}
 
+        # Insertar en tabla junction
         conn.execute(
-            text("""
-                UPDATE vehicles
-                SET driver_id = :driver_id
-                WHERE id = :vehicle_id
-            """),
+            text("INSERT INTO vehicle_driver (vehicle_id, driver_id) VALUES (:v, :d)"),
+            {"v": data.vehicle_id, "d": data.driver_id}
+        )
+
+        # También actualizar vehicles.driver_id para compatibilidad
+        conn.execute(
+            text("UPDATE vehicles SET driver_id = :driver_id WHERE id = :vehicle_id"),
             data.dict()
         )
 
-    return {
-        "success": True,
-        "message": "Afiliado correctamente"
-    }
+    return {"success": True, "message": "Afiliado correctamente"}
 
 
 # =========================
@@ -535,12 +539,8 @@ def get_vehicle_detail(vehicle_id: int):
 
         result = conn.execute(
             text("""
-                SELECT 
-                    v.*,
-                    u.username AS conductor,
-                    u.status AS conductor_status
+                SELECT v.*
                 FROM vehicles v
-                LEFT JOIN users u ON v.driver_id = u.id
                 WHERE v.id = :vehicle_id
             """),
             {"vehicle_id": vehicle_id}
@@ -551,28 +551,32 @@ def get_vehicle_detail(vehicle_id: int):
 
         vehicle = dict(result._mapping)
 
-        driver = None
-        if vehicle["conductor"] is not None:
-            driver = {
-                "username": vehicle["conductor"],
-                "status": vehicle["conductor_status"]
-            }
-
-        trips = conn.execute(
-            text("""
-                SELECT *
-                FROM trips
-                WHERE vehiculo = :placa
-                ORDER BY id DESC
-            """),
-            {"placa": vehicle["placa"]}
-        )
+        # Todos los conductores afiliados (desde vehicle_driver si existe, sino vehicles.driver_id)
+        try:
+            drivers = conn.execute(
+                text("""
+                    SELECT u.id, u.username, u.status
+                    FROM vehicle_driver vd
+                    JOIN users u ON u.id = vd.driver_id
+                    WHERE vd.vehicle_id = :vehicle_id
+                """),
+                {"vehicle_id": vehicle_id}
+            ).fetchall()
+        except Exception:
+            drivers = conn.execute(
+                text("""
+                    SELECT u.id, u.username, u.status
+                    FROM users u
+                    WHERE u.id = (SELECT driver_id FROM vehicles WHERE id = :vehicle_id)
+                    AND u.id IS NOT NULL
+                """),
+                {"vehicle_id": vehicle_id}
+            ).fetchall()
 
         return {
             "success": True,
             "vehicle": vehicle,
-            "driver": driver,
-            "trips": [dict(t._mapping) for t in trips]
+            "drivers": [dict(d._mapping) for d in drivers],
         }
 
 
@@ -804,3 +808,134 @@ def get_tractas(user_id: int):
         ).fetchall()
         result = [dict(r._mapping) for r in rows]
     return {"success": True, "tractas": result}
+
+
+# =========================
+# AFILIACIONES EXISTENTES (conductor→vehículos o vehículo→conductores)
+# =========================
+@app.get("/affiliations/owner/{user_id}")
+def get_all_affiliations(user_id: int):
+    """Todas las parejas conductor+vehículo afiliadas para un propietario (desde junction table)."""
+    with engine.connect() as conn:
+        # Intentar desde vehicle_driver primero
+        try:
+            rows = conn.execute(
+                text("""
+                    SELECT v.id AS vehicle_id, v.placa, v.apodo, v.marca,
+                           u.id AS driver_id, u.username AS driver_username
+                    FROM vehicle_driver vd
+                    JOIN vehicles v ON v.id = vd.vehicle_id
+                    JOIN users u ON u.id = vd.driver_id
+                    WHERE v.user_id = :user_id
+                    ORDER BY vd.created_at DESC
+                """),
+                {"user_id": user_id}
+            ).fetchall()
+        except Exception:
+            # Fallback a vehicles.driver_id
+            rows = conn.execute(
+                text("""
+                    SELECT v.id AS vehicle_id, v.placa, v.apodo, v.marca,
+                           u.id AS driver_id, u.username AS driver_username
+                    FROM vehicles v
+                    JOIN users u ON u.id = v.driver_id
+                    WHERE v.user_id = :user_id AND v.driver_id IS NOT NULL
+                """),
+                {"user_id": user_id}
+            ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "affiliations": result}
+
+
+@app.get("/vehicle/{vehicle_id}/affiliations")
+def get_vehicle_affiliations(vehicle_id: int):
+    """Todos los conductores afiliados a un vehículo (historial)."""
+    with engine.connect() as conn:
+        # Para afiliaciones múltiples necesitamos tabla vehicle_driver
+        # Por ahora devolvemos el conductor actual
+        rows = conn.execute(
+            text("""
+                SELECT u.id, u.username, u.status
+                FROM vehicles v
+                JOIN users u ON u.id = v.driver_id
+                WHERE v.id = :vehicle_id AND v.driver_id IS NOT NULL
+            """),
+            {"vehicle_id": vehicle_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "drivers": result}
+
+
+# =========================
+# CONDUCTOR — DATOS COMPLETOS (nuevo campo cedula, telefono, correo)
+# =========================
+@app.get("/driver/profile/{driver_id}")
+def get_driver_profile(driver_id: int):
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("""
+                SELECT id, username, status, email,
+                       COALESCE(cedula, '') AS cedula,
+                       COALESCE(telefono, '') AS telefono
+                FROM users
+                WHERE id = :id AND role = 'conductor'
+            """),
+            {"id": driver_id}
+        ).fetchone()
+        if not row:
+            return {"success": False, "message": "Conductor no encontrado"}
+
+        # Vehículos donde está afiliado
+        vehicles = conn.execute(
+            text("""
+                SELECT v.id, v.placa, v.apodo, v.marca, v.modelo, v.color
+                FROM vehicles v
+                WHERE v.driver_id = :driver_id
+            """),
+            {"driver_id": driver_id}
+        ).fetchall()
+
+        data = dict(row._mapping)
+        data["vehicles"] = [dict(v._mapping) for v in vehicles]
+    return {"success": True, "driver": data}
+
+
+# =========================
+# CONDUCTOR — TRACTÁS ORDENADAS (para dashboard conductor)
+# =========================
+@app.get("/driver/tractas/{driver_id}")
+def get_driver_tractas(driver_id: int):
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT t.id, t.origen, t.destino, t.flete, t.trip_status,
+                       t.vehiculo AS vehicle_placa,
+                       v.id AS vehicle_id, v.placa, v.apodo, v.marca, v.modelo, v.color,
+                       u.username AS propietario
+                FROM trips t
+                LEFT JOIN vehicles v ON v.placa = t.vehiculo
+                LEFT JOIN users u ON u.id = v.user_id
+                WHERE t.driver_id = :driver_id
+                ORDER BY t.id ASC
+            """),
+            {"driver_id": driver_id}
+        ).fetchall()
+        result = [dict(r._mapping) for r in rows]
+    return {"success": True, "tractas": result}
+
+
+# =========================
+# AGREGAR cedula/telefono a users si no existen
+# =========================
+@app.on_event("startup")
+async def maybe_add_columns():
+    """Agrega columnas cedula y telefono si no existen (migración segura)."""
+    try:
+        with engine.begin() as conn:
+            for col in ["cedula", "telefono"]:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} VARCHAR(50) DEFAULT NULL"))
+                except Exception:
+                    pass  # Ya existe
+    except Exception:
+        pass

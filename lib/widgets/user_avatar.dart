@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/session.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
+import '../screens/reports_screen.dart';
+import '../screens/billing_screen.dart';
 
 // ── Widget avatar reutilizable ─────────────────────────────────
 class UserAvatar extends StatelessWidget {
@@ -343,6 +345,42 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
                         const SizedBox(height: 4),
                       ],
 
+                      // ── Reporte de Tractás ──────────────────
+                      if (Session.role != "conductor") ...[
+                        Divider(color: divColor),
+                        const SizedBox(height: 4),
+                        _panelNavButton(
+                          context: context,
+                          icon: Icons.bar_chart,
+                          label: "Reporte de Tractás",
+                          color: color,
+                          onTap: () {
+                            Navigator.pop(context); // cierra panel
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ReportsScreen()),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        _panelNavButton(
+                          context: context,
+                          icon: Icons.receipt_long,
+                          label: "Facturación",
+                          color: color,
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const BillingScreen()),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                      ],
+
                       const Spacer(),
 
                       Divider(color: divColor),
@@ -389,6 +427,31 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _panelNavButton({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 12),
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 15)),
+            const Spacer(),
+            Icon(Icons.chevron_right, color: Colors.white38, size: 18),
+          ],
         ),
       ),
     );

@@ -536,4 +536,53 @@ class ApiService {
       return [];
     }
   }
+  // =========================
+  // CONDUCTOR — TRACTÁS ORDENADAS
+  // =========================
+  static Future<List<dynamic>> getDriverTractas() async {
+    try {
+      final r = await http.get(
+        Uri.parse("$baseUrl/driver/tractas/${Session.userId}"),
+      );
+      final data = jsonDecode(r.body);
+      if (data["success"] == true) return data["tractas"] ?? [];
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // =========================
+  // PROPIETARIO — TODAS LAS AFILIACIONES
+  // =========================
+  static Future<List<dynamic>> getAllAffiliations() async {
+    try {
+      final r = await http.get(
+        Uri.parse("$baseUrl/affiliations/owner/${Session.userId}"),
+      );
+      final data = jsonDecode(r.body);
+      if (data["success"] == true) return data["affiliations"] ?? [];
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // =========================
+  // CONDUCTOR — PERFIL COMPLETO
+  // =========================
+  static Future<Map<String, dynamic>?> getDriverProfile(int driverId) async {
+    try {
+      final r = await http.get(
+        Uri.parse("$baseUrl/driver/profile/$driverId"),
+      );
+      final data = jsonDecode(r.body);
+      if (data["success"] == true) return data["driver"];
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+
 }

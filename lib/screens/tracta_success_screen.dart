@@ -43,8 +43,15 @@ class _TractaSuccessScreenState extends State<TractaSuccessScreen>
     super.dispose();
   }
 
+  void _irAlHome() {
+    // Vuelve al NavigationExample (home de propietarios), NO al login
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 700;
+
     return Scaffold(
       body: LiquidBackground(
         child: SafeArea(
@@ -52,46 +59,45 @@ class _TractaSuccessScreenState extends State<TractaSuccessScreen>
             opacity: _fade,
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 20 : 40,
+                  vertical: 24,
+                ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
+                  constraints: const BoxConstraints(maxWidth: 560),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Icono animado
+                      // Ícono animado
                       ScaleTransition(
                         scale: _scale,
                         child: Container(
-                          width: 110,
-                          height: 110,
+                          width: 100,
+                          height: 100,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.green.withOpacity(0.2),
+                            color: Colors.green.withOpacity(0.15),
                             border: Border.all(color: Colors.green, width: 3),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.green.withOpacity(0.4),
-                                blurRadius: 30,
+                                color: Colors.green.withOpacity(0.35),
+                                blurRadius: 28,
                                 spreadRadius: 4,
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.check_circle_outline,
-                            color: Colors.green,
-                            size: 60,
-                          ),
+                          child: const Icon(Icons.check_circle_outline,
+                              color: Colors.green, size: 52),
                         ),
                       ),
 
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 24),
 
                       Text(
                         "¡Tractá Realizada!",
-                        style: const TextStyle(
-                          fontSize: 32,
+                        style: TextStyle(
+                          fontSize: isMobile ? 28 : 34,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -100,70 +106,67 @@ class _TractaSuccessScreenState extends State<TractaSuccessScreen>
 
                       Text(
                         "La tractá #${widget.tractaNum} se ha realizado correctamente",
-                        style: TextStyle(fontSize: 15, color: Colors.white60),
+                        style: const TextStyle(fontSize: 14, color: Colors.white60),
                         textAlign: TextAlign.center,
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 28),
 
+                      // Tarjeta de detalles
                       LiquidGlassCard(
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(20),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _infoRow(Icons.local_shipping, "Vehículo", widget.vehiculo),
-                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white10, height: 20),
                               _infoRow(Icons.person, "Conductor", widget.conductor),
-                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white10, height: 20),
                               _infoRow(Icons.trip_origin, "Desde", widget.origen),
-                              const SizedBox(height: 16),
+                              const Divider(color: Colors.white10, height: 20),
                               _infoRow(Icons.flag, "Hasta", widget.destino),
-
-                              const SizedBox(height: 20),
-
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: Colors.green.withOpacity(0.3)),
-                                ),
-                                child: Text(
-                                  "La tractá #${widget.tractaNum} con conductor ${widget.conductor} "
-                                  "en el vehículo ${widget.vehiculo} hacia ${widget.destino} "
-                                  "desde ${widget.origen} se ha realizado correctamente.",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    height: 1.5,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
                             ],
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
+
+                      // Mensaje resumen
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.10),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.green.withOpacity(0.25)),
+                        ),
+                        child: Text(
+                          "La tractá #${widget.tractaNum} con conductor ${widget.conductor} "
+                          "en el vehículo ${widget.vehiculo} hacia ${widget.destino} "
+                          "desde ${widget.origen} se ha realizado correctamente.",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
 
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
-                          onPressed: () {
-                            // Volver al home eliminando todo el stack de tractá
-                            Navigator.of(context).popUntil((route) => route.isFirst);
-                          },
+                          onPressed: _irAlHome,
                           icon: const Icon(Icons.home),
-                          label: const Text("Ir al Inicio"),
+                          label: const Text("Ir al Home de Propietarios"),
                           style: FilledButton.styleFrom(
                             backgroundColor: const Color(0xFF4B2E83),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                                borderRadius: BorderRadius.circular(14)),
                           ),
                         ),
                       ),
@@ -178,26 +181,31 @@ class _TractaSuccessScreenState extends State<TractaSuccessScreen>
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF4B2E83).withOpacity(0.25),
-            borderRadius: BorderRadius.circular(8),
+  Widget _infoRow(IconData icon, String label, String value) => Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4B2E83).withOpacity(0.25),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: Colors.white70, size: 17),
           ),
-          child: Icon(icon, color: Colors.white70, size: 18),
-        ),
-        const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: Colors.white54)),
-            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ],
-    );
-  }
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(fontSize: 10, color: Colors.white54)),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
+      );
 }

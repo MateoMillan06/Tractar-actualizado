@@ -10,8 +10,6 @@ import 'home_screen.dart';
 import 'vehicles_screen.dart';
 import 'trips_screen.dart';
 import 'drivers_screen.dart';
-import 'reports_screen.dart';
-import 'billing_screen.dart';
 import 'add_vehicle_screen.dart';
 import 'add_trip_screen.dart';
 
@@ -28,40 +26,33 @@ class _NavigationExampleState extends State<NavigationExample> {
 
   Future<void> _goToAddVehicle() async {
     await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddVehicleScreen()),
-    );
+        context, MaterialPageRoute(builder: (_) => const AddVehicleScreen()));
     if (!mounted) return;
     setState(() => refreshTick++);
   }
 
   Future<void> _goToAddTrip() async {
     await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddTripScreen()),
-    );
+        context, MaterialPageRoute(builder: (_) => const AddTripScreen()));
     if (!mounted) return;
     setState(() => refreshTick++);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark  = context.watch<ThemeProvider>().isDark;
     final isMobile = MediaQuery.of(context).size.width < 700;
-    // Iconos y labels siempre blancos — fondo siempre oscuro en ambos modos
     const iconColor  = Colors.white;
     const labelColor = Colors.white;
 
+    // 4 tabs: Home, Vehículos, Viajes, Conductores
+    // Reportes y Facturación → en el panel lateral del avatar
     final screens = [
       HomeScreen(key: ValueKey(refreshTick)),
       VehiclesScreen(key: ValueKey('v$refreshTick')),
       TripsScreen(key: ValueKey('t$refreshTick')),
       const DriversScreen(),
-      const ReportsScreen(),
-      const BillingScreen(),
     ];
 
-    // ── AppBar adaptativo ──────────────────────────────────
     final appBar = AppBar(
       toolbarHeight: isMobile ? 70 : 92,
       backgroundColor: Colors.transparent,
@@ -72,7 +63,6 @@ class _NavigationExampleState extends State<NavigationExample> {
       titleSpacing: isMobile ? 12 : 20,
       title: Row(
         children: [
-          // Avatar con panel de perfil
           const UserAvatar(),
           const SizedBox(width: 12),
           Expanded(
@@ -87,9 +77,8 @@ class _NavigationExampleState extends State<NavigationExample> {
                   "Tractar • ${Session.username}",
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: isMobile ? 15 : 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      fontSize: isMobile ? 15 : 18,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -98,8 +87,6 @@ class _NavigationExampleState extends State<NavigationExample> {
       ),
     );
 
-    // ── Barra de navegación adaptativa ────────────────────
-    // Móvil: solo muestra label de la pestaña activa
     final bottomNav = ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
@@ -113,10 +100,9 @@ class _NavigationExampleState extends State<NavigationExample> {
                 : NavigationDestinationLabelBehavior.alwaysShow,
             labelTextStyle: const WidgetStatePropertyAll(
               TextStyle(
-                color: labelColor,
-                fontWeight: FontWeight.w600,
-                fontSize: 11,
-              ),
+                  color: labelColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11),
             ),
             height: isMobile ? 64 : null,
             selectedIndex: index,
@@ -142,44 +128,32 @@ class _NavigationExampleState extends State<NavigationExample> {
                 selectedIcon: Icon(Icons.people, color: iconColor),
                 label: "Conductores",
               ),
-              NavigationDestination(
-                icon: Icon(Icons.bar_chart_outlined, color: iconColor),
-                selectedIcon: Icon(Icons.bar_chart, color: iconColor),
-                label: "Reportes",
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.receipt_long_outlined, color: iconColor),
-                selectedIcon: Icon(Icons.receipt_long, color: iconColor),
-                label: "Facturación",
-              ),
             ],
           ),
         ),
       ),
     );
 
-    // ── FAB adaptativo ─────────────────────────────────────
-    // Móvil: solo icono — Desktop: icono + texto
     final fab = index == 1
         ? isMobile
             ? FloatingActionButton(
+                heroTag: "add_v",
                 onPressed: _goToAddVehicle,
-                child: const Icon(Icons.add),
-              )
+                child: const Icon(Icons.add))
             : FloatingActionButton.extended(
+                heroTag: "add_v",
                 onPressed: _goToAddVehicle,
-                label: const Text("Agregar vehículo"),
-              )
+                label: const Text("Agregar vehículo"))
         : index == 2
             ? isMobile
                 ? FloatingActionButton(
+                    heroTag: "add_t",
                     onPressed: _goToAddTrip,
-                    child: const Icon(Icons.add),
-                  )
+                    child: const Icon(Icons.add))
                 : FloatingActionButton.extended(
+                    heroTag: "add_t",
                     onPressed: _goToAddTrip,
-                    label: const Text("Agregar viaje"),
-                  )
+                    label: const Text("Agregar viaje"))
             : null;
 
     return Scaffold(
