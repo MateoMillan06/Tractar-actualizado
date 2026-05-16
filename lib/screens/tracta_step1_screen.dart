@@ -86,9 +86,20 @@ class _TractaStep1ScreenState extends State<TractaStep1Screen> {
     if (!mounted) return;
 
     if (result["success"] == true) {
+      // Pasar el vehículo recién afiliado para pre-seleccionarlo en el paso 2
+      final preSelected = {
+        "id":              vehiculoSeleccionado!["id"],
+        "vehicle_id":      vehiculoSeleccionado!["id"],
+        "driver_id":       conductorSeleccionado!["id"],
+        "placa":           vehiculoSeleccionado!["placa"],
+        "apodo":           vehiculoSeleccionado!["apodo"] ?? "",
+        "driver_username": conductorSeleccionado!["username"],
+      };
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const TractaStep2Screen()),
+        MaterialPageRoute(
+          builder: (_) => TractaStep2Screen(preSelectedVehicle: preSelected),
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
