@@ -15,7 +15,7 @@ class DriverDashboardHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          "Bienvenido ${Session.username ?? ""} 🚛",
+          "Bienvenido, ${Session.username ?? ""}",
           style: const TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.bold,

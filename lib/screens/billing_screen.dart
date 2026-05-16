@@ -37,7 +37,7 @@ class BillingScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         const Text(
-                          "Facturación 💰",
+                          "Facturación",
                           style: TextStyle(
                               fontSize: 22, fontWeight: FontWeight.bold),
                         ),
@@ -97,7 +97,7 @@ class BillingScreen extends StatelessWidget {
 
                                     // ── Por vehículo ───────────────
                                     _sectionHeader(
-                                        "Por vehículo 🚛", byVehicle.length),
+                                        "Por vehículo", byVehicle.length),
                                     const SizedBox(height: 10),
                                     if (byVehicle.isEmpty)
                                       _emptyState("Sin datos de vehículos")
@@ -122,7 +122,7 @@ class BillingScreen extends StatelessWidget {
 
                                     // ── Por conductor ──────────────
                                     _sectionHeader(
-                                        "Por conductor 👨‍✈️", byDriver.length),
+                                        "Por conductor", byDriver.length),
                                     const SizedBox(height: 10),
                                     if (byDriver.isEmpty)
                                       _emptyState("Sin datos de conductores")

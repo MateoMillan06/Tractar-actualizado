@@ -98,7 +98,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         const SizedBox(width: 4),
                         const Expanded(
                           child: Text(
-                            "Reporte de Tractás 📊",
+                            "Reporte de Tractás",
                             style: TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold),
                           ),

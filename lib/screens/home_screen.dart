@@ -63,15 +63,23 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: isMobile ? 16 : 28,
-                              vertical: isMobile ? 18 : 22,
+                              vertical: isMobile ? 16 : 20,
                             ),
-                            child: Text(
-                              "Bienvenido ${Session.username} 🚛",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: isMobile ? 22 : 28,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.manage_accounts,
+                                    color: const Color(0xFF4B2E83),
+                                    size: isMobile ? 26 : 32),
+                                const SizedBox(width: 12),
+                                Text(
+                                  "Bienvenido, ${Session.username}",
+                                  style: TextStyle(
+                                    fontSize: isMobile ? 20 : 26,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

@@ -59,8 +59,14 @@ class _DriversScreenState extends State<DriversScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Conductores 👨‍✈️",
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                const Row(
+                  children: [
+                    Icon(Icons.people, color: Color(0xFF4B2E83), size: 28),
+                    SizedBox(width: 10),
+                    Text("Conductores",
+                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                  ],
+                ),
                 const SizedBox(height: 16),
 
                 // Buscador

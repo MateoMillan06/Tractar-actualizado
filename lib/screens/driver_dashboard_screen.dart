@@ -474,7 +474,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      "Bienvenido, ${Session.username ?? ""} 🚛",
+                                      "Bienvenido, ${Session.username ?? ""}",
                                       style: TextStyle(
                                         fontSize: isMobile ? 16 : 24,
                                         fontWeight: FontWeight.bold,
