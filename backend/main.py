@@ -872,7 +872,7 @@ def get_vehicle_affiliations(vehicle_id: int):
 @app.get("/driver/profile/{driver_id}")
 def get_driver_profile(driver_id: int):
     with engine.connect() as conn:
-        # Intentar con cedula/telefono, fallback sin ellas
+        # Intentar con cedula/telefono — SIN filtrar role para mayor compatibilidad
         try:
             row = conn.execute(
                 text("""
@@ -880,23 +880,22 @@ def get_driver_profile(driver_id: int):
                            COALESCE(cedula, '') AS cedula,
                            COALESCE(telefono, '') AS telefono
                     FROM users
-                    WHERE id = :id AND role = 'conductor'
+                    WHERE id = :id
                 """),
                 {"id": driver_id}
             ).fetchone()
         except Exception:
-            # Columnas cedula/telefono no existen aún
             row = conn.execute(
                 text("""
                     SELECT id, username, status, email
                     FROM users
-                    WHERE id = :id AND role = 'conductor'
+                    WHERE id = :id
                 """),
                 {"id": driver_id}
             ).fetchone()
 
         if not row:
-            return {"success": False, "message": "Conductor no encontrado"}
+            return {"success": False, "message": f"Usuario {driver_id} no encontrado"}
 
         data = dict(row._mapping)
         # Garantizar campos aunque no existan
