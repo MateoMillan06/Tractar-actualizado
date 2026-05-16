@@ -871,8 +871,19 @@ def get_vehicle_affiliations(vehicle_id: int):
 # =========================
 @app.get("/driver/profile/{driver_id}")
 def get_driver_profile(driver_id: int):
+    # Asegurar que columnas existan (migración inline)
+    try:
+        with engine.begin() as conn:
+            for col, typedef in [("cedula", "VARCHAR(50)"), ("telefono", "VARCHAR(50)")]:
+                try:
+                    conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {typedef} DEFAULT NULL"))
+                except Exception:
+                    pass  # Ya existe
+    except Exception:
+        pass
+
     with engine.connect() as conn:
-        # Intentar con cedula/telefono — SIN filtrar role para mayor compatibilidad
+        # Primero intentar con cedula/telefono
         try:
             row = conn.execute(
                 text("""
@@ -885,12 +896,9 @@ def get_driver_profile(driver_id: int):
                 {"id": driver_id}
             ).fetchone()
         except Exception:
+            # Fallback sin esas columnas
             row = conn.execute(
-                text("""
-                    SELECT id, username, status, email
-                    FROM users
-                    WHERE id = :id
-                """),
+                text("SELECT id, username, status, email FROM users WHERE id = :id"),
                 {"id": driver_id}
             ).fetchone()
 

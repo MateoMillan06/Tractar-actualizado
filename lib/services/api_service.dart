@@ -576,12 +576,16 @@ class ApiService {
       final r = await http.get(
         Uri.parse("$baseUrl/driver/profile/$driverId"),
       );
-      final data = jsonDecode(r.body);
-      if (data["success"] == true) return data["driver"] as Map<String, dynamic>;
-      // Si falla, retornar mapa con info básica para no mostrar pantalla vacía
-      return {"username": "", "status": "", "cedula": "", "telefono": "", "email": "", "vehicles": []};
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      if (data["success"] == true) {
+        final driver = data["driver"];
+        if (driver is Map) {
+          return Map<String, dynamic>.from(driver);
+        }
+      }
+      return null;
     } catch (_) {
-      return {"username": "", "status": "", "cedula": "", "telefono": "", "email": "", "vehicles": []};
+      return null;
     }
   }
 

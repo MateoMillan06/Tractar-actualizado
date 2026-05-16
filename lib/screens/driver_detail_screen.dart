@@ -149,12 +149,15 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
 
   Widget _profileCard() {
     final d = driver!;
-    final name    = d["username"]?.toString() ?? widget.driverName;
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : "?";
-    final status  = d["status"]?.toString();
-    final cedula  = d["cedula"]?.toString() ?? "";
+    // Usar widget.driverName como fallback si username viene vacío del backend
+    final name     = (d["username"]?.toString().isNotEmpty == true)
+        ? d["username"].toString()
+        : widget.driverName;
+    final initial  = name.isNotEmpty ? name[0].toUpperCase() : "?";
+    final status   = d["status"]?.toString();
+    final cedula   = d["cedula"]?.toString() ?? "";
     final telefono = d["telefono"]?.toString() ?? "";
-    final email   = d["email"]?.toString() ?? "";
+    final email    = d["email"]?.toString() ?? "";
 
     return LiquidGlassCard(
       child: Padding(
