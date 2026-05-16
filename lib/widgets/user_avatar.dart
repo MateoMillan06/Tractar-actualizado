@@ -133,7 +133,7 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
                 ),
               ),
               child: SafeArea(
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,7 +381,7 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
                         const SizedBox(height: 4),
                       ],
 
-                      const Spacer(),
+                      const SizedBox(height: 24),
 
                       Divider(color: divColor),
 

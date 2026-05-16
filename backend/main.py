@@ -872,30 +872,58 @@ def get_vehicle_affiliations(vehicle_id: int):
 @app.get("/driver/profile/{driver_id}")
 def get_driver_profile(driver_id: int):
     with engine.connect() as conn:
-        row = conn.execute(
-            text("""
-                SELECT id, username, status, email,
-                       COALESCE(cedula, '') AS cedula,
-                       COALESCE(telefono, '') AS telefono
-                FROM users
-                WHERE id = :id AND role = 'conductor'
-            """),
-            {"id": driver_id}
-        ).fetchone()
+        # Intentar con cedula/telefono, fallback sin ellas
+        try:
+            row = conn.execute(
+                text("""
+                    SELECT id, username, status, email,
+                           COALESCE(cedula, '') AS cedula,
+                           COALESCE(telefono, '') AS telefono
+                    FROM users
+                    WHERE id = :id AND role = 'conductor'
+                """),
+                {"id": driver_id}
+            ).fetchone()
+        except Exception:
+            # Columnas cedula/telefono no existen aún
+            row = conn.execute(
+                text("""
+                    SELECT id, username, status, email
+                    FROM users
+                    WHERE id = :id AND role = 'conductor'
+                """),
+                {"id": driver_id}
+            ).fetchone()
+
         if not row:
             return {"success": False, "message": "Conductor no encontrado"}
 
-        # Vehículos donde está afiliado
-        vehicles = conn.execute(
-            text("""
-                SELECT v.id, v.placa, v.apodo, v.marca, v.modelo, v.color
-                FROM vehicles v
-                WHERE v.driver_id = :driver_id
-            """),
-            {"driver_id": driver_id}
-        ).fetchall()
-
         data = dict(row._mapping)
+        # Garantizar campos aunque no existan
+        data.setdefault("cedula", "")
+        data.setdefault("telefono", "")
+
+        # Vehículos afiliados (vehicle_driver junction + fallback)
+        try:
+            vehicles = conn.execute(
+                text("""
+                    SELECT v.id, v.placa, v.apodo, v.marca, v.modelo, v.color
+                    FROM vehicle_driver vd
+                    JOIN vehicles v ON v.id = vd.vehicle_id
+                    WHERE vd.driver_id = :driver_id
+                """),
+                {"driver_id": driver_id}
+            ).fetchall()
+        except Exception:
+            vehicles = conn.execute(
+                text("""
+                    SELECT v.id, v.placa, v.apodo, v.marca, v.modelo, v.color
+                    FROM vehicles v
+                    WHERE v.driver_id = :driver_id
+                """),
+                {"driver_id": driver_id}
+            ).fetchall()
+
         data["vehicles"] = [dict(v._mapping) for v in vehicles]
     return {"success": True, "driver": data}
 
