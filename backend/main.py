@@ -874,7 +874,11 @@ def get_driver_profile(driver_id: int):
     # Asegurar que columnas existan (migración inline)
     try:
         with engine.begin() as conn:
-            for col, typedef in [("cedula", "VARCHAR(50)"), ("telefono", "VARCHAR(50)")]:
+            for col, typedef in [
+                ("cedula",   "VARCHAR(50)"),
+                ("telefono", "VARCHAR(50)"),
+                ("email",    "VARCHAR(120)"),
+            ]:
                 try:
                     conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {typedef} DEFAULT NULL"))
                 except Exception:
@@ -887,18 +891,18 @@ def get_driver_profile(driver_id: int):
         try:
             row = conn.execute(
                 text("""
-                    SELECT id, username, status, email,
-                           COALESCE(cedula, '') AS cedula,
-                           COALESCE(telefono, '') AS telefono
+                    SELECT id, username, status,
+                           COALESCE(cedula, '')   AS cedula,
+                           COALESCE(telefono, '') AS telefono,
+                           COALESCE(email, '')    AS email
                     FROM users
                     WHERE id = :id
                 """),
                 {"id": driver_id}
             ).fetchone()
         except Exception:
-            # Fallback sin esas columnas
             row = conn.execute(
-                text("SELECT id, username, status, email FROM users WHERE id = :id"),
+                text("SELECT id, username, status FROM users WHERE id = :id"),
                 {"id": driver_id}
             ).fetchone()
 
