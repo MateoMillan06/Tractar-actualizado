@@ -577,10 +577,11 @@ class ApiService {
         Uri.parse("$baseUrl/driver/profile/$driverId"),
       );
       final data = jsonDecode(r.body);
-      if (data["success"] == true) return data["driver"];
-      return null;
+      if (data["success"] == true) return data["driver"] as Map<String, dynamic>;
+      // Si falla, retornar mapa con info básica para no mostrar pantalla vacía
+      return {"username": "", "status": "", "cedula": "", "telefono": "", "email": "", "vehicles": []};
     } catch (_) {
-      return null;
+      return {"username": "", "status": "", "cedula": "", "telefono": "", "email": "", "vehicles": []};
     }
   }
 
