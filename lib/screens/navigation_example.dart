@@ -47,7 +47,7 @@ class _NavigationExampleState extends State<NavigationExample> {
     // 4 tabs: Home, Vehículos, Viajes, Conductores
     // Reportes y Facturación → en el panel lateral del avatar
     final screens = [
-      HomeScreen(key: ValueKey(refreshTick)),
+      const HomeScreen(),
       VehiclesScreen(key: ValueKey('v$refreshTick')),
       TripsScreen(key: ValueKey('t$refreshTick')),
       const DriversScreen(),

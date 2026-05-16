@@ -53,7 +53,7 @@ class _TractaStep1ScreenState extends State<TractaStep1Screen> {
     }
 
     // Mostrar diálogo
-    final resultado = await showDialog<String>(
+    final resultado = await showDialog<Map<String, dynamic>?>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _AffiliationDialog(afiliaciones: afiliaciones),
@@ -61,16 +61,18 @@ class _TractaStep1ScreenState extends State<TractaStep1Screen> {
 
     if (!mounted) return;
 
-    if (resultado == 'nueva') {
-      // Quedarse en esta pantalla para nueva afiliación
+    if (resultado == null) {
+      // Canceló o eligió nueva afiliación
       return;
-    } else if (resultado != null) {
-      // Seleccionó una afiliación existente → ir directamente al paso 2
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const TractaStep2Screen()),
-      );
     }
+
+    // Seleccionó una afiliación existente → ir al paso 2 con pre-selección
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => TractaStep2Screen(preSelectedVehicle: resultado),
+      ),
+    );
   }
 
   Future<void> _afiliar() async {
@@ -567,7 +569,7 @@ class _AffiliationDialogState extends State<_AffiliationDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, 'nueva'),
+                      onPressed: () => Navigator.pop(context, null),  // nueva afiliación
                       style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.white30),
                           foregroundColor: Colors.white70),
@@ -578,7 +580,10 @@ class _AffiliationDialogState extends State<_AffiliationDialog> {
                   Expanded(
                     child: FilledButton(
                       onPressed: _selIdx != null
-                          ? () => Navigator.pop(context, 'existente')
+                          ? () => Navigator.pop(
+                                context,
+                                widget.afiliaciones[_selIdx!] as Map<String, dynamic>,
+                              )
                           : null,
                       style: FilledButton.styleFrom(
                           backgroundColor: Colors.green),

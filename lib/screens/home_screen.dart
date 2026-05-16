@@ -4,122 +4,174 @@ import '../services/api_service.dart';
 import '../widgets/liquid_glass_card.dart';
 import 'tracta_step1_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Future<List<dynamic>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    setState(() {
+      _future = Future.wait([
+        ApiService.getVehicles(),
+        ApiService.getTrips(),
+      ]);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(24),
-          child: FutureBuilder<List<dynamic>>(
-            future: Future.wait([
-              ApiService.getVehicles(),
-              ApiService.getTrips(),
-            ]),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+        FutureBuilder<List<dynamic>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-              final vehicles = snapshot.data![0];
-              final trips    = snapshot.data![1];
+            final vehicles = snapshot.data![0] as List;
+            final trips    = snapshot.data![1] as List;
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: SizedBox(
-                      width: 420,
-                      child: LiquidGlassCard(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 18,
-                          ),
-                          child: Text(
-                            "Bienvenido ${Session.username} 🚛",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
+            return RefreshIndicator(
+              onRefresh: () async => _load(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 16 : 32,
+                  vertical: 20,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Column(
+                      children: [
+                        // Bienvenida
+                        LiquidGlassCard(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isMobile ? 16 : 28,
+                              vertical: isMobile ? 18 : 22,
+                            ),
+                            child: Text(
+                              "Bienvenido ${Session.username} 🚛",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: isMobile ? 22 : 28,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 120),
-                      child: Center(
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 48,
-                          runSpacing: 24,
+
+                        const SizedBox(height: 24),
+
+                        // KPIs
+                        Row(
                           children: [
-                            SizedBox(
-                              width: 300,
-                              height: 220,
+                            Expanded(
                               child: LiquidGlassCard(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.local_shipping, size: 52, color: Colors.white),
-                                    const SizedBox(height: 12),
-                                    Text("${vehicles.length}", style: const TextStyle(fontSize: 42)),
-                                    const SizedBox(height: 8),
-                                    const Text("Vehículos"),
-                                  ],
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: isMobile ? 24 : 32,
+                                    horizontal: 12,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.local_shipping,
+                                          size: isMobile ? 38 : 48,
+                                          color: Colors.white),
+                                      const SizedBox(height: 10),
+                                      Text("${vehicles.length}",
+                                          style: TextStyle(
+                                              fontSize: isMobile ? 32 : 40,
+                                              fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 6),
+                                      const Text("Vehículos",
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 13)),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                            SizedBox(
-                              width: 300,
-                              height: 220,
+                            const SizedBox(width: 16),
+                            Expanded(
                               child: LiquidGlassCard(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.route, size: 52, color: Colors.white),
-                                    const SizedBox(height: 12),
-                                    Text("${trips.length}", style: const TextStyle(fontSize: 42)),
-                                    const SizedBox(height: 8),
-                                    const Text("Viajes"),
-                                  ],
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: isMobile ? 24 : 32,
+                                    horizontal: 12,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.route,
+                                          size: isMobile ? 38 : 48,
+                                          color: Colors.white),
+                                      const SizedBox(height: 10),
+                                      Text("${trips.length}",
+                                          style: TextStyle(
+                                              fontSize: isMobile ? 32 : 40,
+                                              fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 6),
+                                      const Text("Viajes",
+                                          style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 13)),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      ),
+
+                        // Espacio para el FAB
+                        const SizedBox(height: 100),
+                      ],
                     ),
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ),
+            );
+          },
         ),
 
-        // ── Botón Realizar Tractá (esquina inferior derecha) ──
+        // FAB — Realizar una Tractá
         Positioned(
-          bottom: 100,
-          right: 24,
+          bottom: 16,
+          right: 16,
           child: FloatingActionButton.extended(
             heroTag: "tracta_fab",
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const TractaStep1Screen()),
               );
+              // Recargar home al volver de cualquier punto del flujo de tractá
+              _load();
             },
             backgroundColor: const Color(0xFF4B2E83),
             icon: const Icon(Icons.local_shipping, color: Colors.white),
             label: const Text(
               "Realizar una Tractá",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ),

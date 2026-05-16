@@ -7,18 +7,21 @@ import 'tracta_step1_screen.dart';
 import 'tracta_success_screen.dart';
 
 class TractaStep2Screen extends StatefulWidget {
-  const TractaStep2Screen({super.key});
+  final Map<String, dynamic>? preSelectedVehicle;
+
+  const TractaStep2Screen({super.key, this.preSelectedVehicle});
 
   @override
   State<TractaStep2Screen> createState() => _TractaStep2ScreenState();
 }
 
 class _TractaStep2ScreenState extends State<TractaStep2Screen> {
-  List<dynamic> vehiculosAfiliados = [];
-  List<dynamic> viajesSinAsignar  = [];
+  // En el paso 2 siempre mostramos TODAS las afiliaciones conductor+vehículo
+  List<dynamic> afiliaciones = [];
+  List<dynamic> viajesSinAsignar = [];
   bool loading = true;
 
-  Map<String, dynamic>? vehiculoSeleccionado;
+  Map<String, dynamic>? afiliacionSeleccionada;
   Map<String, dynamic>? viajeSeleccionado;
 
   @override
@@ -33,20 +36,34 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
       ApiService.getVehiclesAfiliados(),
       ApiService.getTripsSinAsignar(),
     ]);
+    if (!mounted) return;
     setState(() {
-      vehiculosAfiliados  = results[0];
-      viajesSinAsignar   = results[1];
-      vehiculoSeleccionado = null;
-      viajeSeleccionado   = null;
+      afiliaciones = results[0];
+      viajesSinAsignar = results[1];
+      viajeSeleccionado = null;
       loading = false;
     });
+    // Pre-seleccionar afiliación si viene del diálogo
+    if (widget.preSelectedVehicle != null && afiliaciones.isNotEmpty) {
+      final preVehicleId = widget.preSelectedVehicle!["vehicle_id"] ??
+                           widget.preSelectedVehicle!["id"];
+      final preDriverId  = widget.preSelectedVehicle!["driver_id"];
+      final match = afiliaciones.firstWhere(
+        (a) => a["id"] == preVehicleId ||
+               (a["driver_id"] == preDriverId && a["id"] == preVehicleId),
+        orElse: () => null,
+      );
+      if (match != null && mounted) {
+        setState(() => afiliacionSeleccionada = match as Map<String, dynamic>);
+      }
+    }
   }
 
   Future<void> _realizarTracta() async {
-    if (vehiculoSeleccionado == null || viajeSeleccionado == null) return;
+    if (afiliacionSeleccionada == null || viajeSeleccionado == null) return;
 
-    final driverId  = vehiculoSeleccionado!["driver_id"] as int?;
-    final vehicleId = vehiculoSeleccionado!["id"] as int?;
+    final driverId  = afiliacionSeleccionada!["driver_id"] as int?;
+    final vehicleId = afiliacionSeleccionada!["id"] as int?;
     final tripId    = viajeSeleccionado!["id"] as int?;
 
     if (driverId == null || vehicleId == null || tripId == null) return;
@@ -65,10 +82,10 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
         MaterialPageRoute(
           builder: (_) => TractaSuccessScreen(
             tractaNum: tripId,
-            conductor: vehiculoSeleccionado!["driver_username"] ?? "Conductor",
-            vehiculo: vehiculoSeleccionado!["apodo"]?.isNotEmpty == true
-                ? vehiculoSeleccionado!["apodo"]
-                : vehiculoSeleccionado!["placa"],
+            conductor: afiliacionSeleccionada!["driver_username"] ?? "Conductor",
+            vehiculo: (afiliacionSeleccionada!["apodo"]?.isNotEmpty == true)
+                ? afiliacionSeleccionada!["apodo"]
+                : afiliacionSeleccionada!["placa"],
             origen: viajeSeleccionado!["origen"] ?? "-",
             destino: viajeSeleccionado!["destino"] ?? "-",
           ),
@@ -84,15 +101,15 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
     }
   }
 
-  Widget _vehiculoCard(Map<String, dynamic> v) {
-    final isSelected = vehiculoSeleccionado?["id"] == v["id"];
+  Widget _afiliacionCard(Map<String, dynamic> v) {
+    final isSelected = afiliacionSeleccionada?["id"] == v["id"];
     final apodo  = (v["apodo"]?.toString().isNotEmpty ?? false) ? v["apodo"] : null;
     final placa  = v["placa"] ?? "-";
     final driver = v["driver_username"] ?? "Sin conductor";
 
     return GestureDetector(
       onTap: () => setState(() {
-        vehiculoSeleccionado = isSelected ? null : v;
+        afiliacionSeleccionada = isSelected ? null : v;
       }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -100,9 +117,7 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: isSelected
-              ? Colors.green.withOpacity(0.18)
-              : Colors.white.withOpacity(0.06),
+          color: isSelected ? Colors.green.withOpacity(0.18) : Colors.white.withOpacity(0.06),
           border: Border.all(
             color: isSelected ? Colors.green : Colors.white.withOpacity(0.12),
             width: isSelected ? 2 : 1,
@@ -133,7 +148,8 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
                     ],
                   ),
                 ),
-                if (isSelected) const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                if (isSelected)
+                  const Icon(Icons.check_circle, color: Colors.green, size: 20),
               ],
             ),
             const SizedBox(height: 8),
@@ -152,9 +168,6 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
 
   Widget _viajeCard(Map<String, dynamic> t) {
     final isSelected = viajeSeleccionado?["id"] == t["id"];
-    final origen  = t["origen"]  ?? "-";
-    final destino = t["destino"] ?? "-";
-    final flete   = t["flete"];
 
     return GestureDetector(
       onTap: () => setState(() {
@@ -166,9 +179,7 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          color: isSelected
-              ? Colors.green.withOpacity(0.18)
-              : Colors.white.withOpacity(0.06),
+          color: isSelected ? Colors.green.withOpacity(0.18) : Colors.white.withOpacity(0.06),
           border: Border.all(
             color: isSelected ? Colors.green : Colors.white.withOpacity(0.12),
             width: isSelected ? 2 : 1,
@@ -182,7 +193,8 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
                 color: (isSelected ? Colors.green : const Color(0xFF4B2E83)).withOpacity(0.25),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.route, color: isSelected ? Colors.green : Colors.white, size: 18),
+              child: Icon(Icons.route,
+                  color: isSelected ? Colors.green : Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -190,24 +202,22 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "$origen → $destino",
+                    "${t["origen"]} → ${t["destino"]}",
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.green : Colors.white,
-                    ),
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.green : Colors.white),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (flete != null && flete.toString().isNotEmpty)
-                    Text(
-                      "Flete: \$$flete",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isSelected ? Colors.green.shade300 : Colors.white54,
-                      ),
-                    ),
+                  if (t["flete"] != null && t["flete"].toString().isNotEmpty)
+                    Text("Flete: \$${t["flete"]}",
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isSelected ? Colors.green.shade300 : Colors.white54)),
                 ],
               ),
             ),
-            if (isSelected) const Icon(Icons.check_circle, color: Colors.green, size: 20),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: Colors.green, size: 20),
           ],
         ),
       ),
@@ -216,7 +226,7 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
 
   @override
   Widget build(BuildContext context) {
-    final ambosSeleccionados = vehiculoSeleccionado != null && viajeSeleccionado != null;
+    final ambos = afiliacionSeleccionada != null && viajeSeleccionado != null;
     final isMobile = MediaQuery.of(context).size.width < 700;
 
     return Scaffold(
@@ -242,14 +252,10 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: const [
-                                Text(
-                                  "Realizar Tractá — Paso 2",
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  "Asigna un viaje al vehículo con conductor",
-                                  style: TextStyle(fontSize: 13, color: Colors.white60),
-                                ),
+                                Text("Realizar Tractá — Paso 2",
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                Text("Asigna un viaje al conductor con vehículo",
+                                    style: TextStyle(fontSize: 13, color: Colors.white60)),
                               ],
                             ),
                           ),
@@ -258,20 +264,10 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
                     ),
 
                     const SizedBox(height: 8),
-
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Row(
-                        children: [
-                          _stepDot(1, false, "Conductor\n+ Vehículo"),
-                          Expanded(child: Container(height: 2, color: Colors.green)),
-                          _stepDot(2, true, "Asignar\nViaje"),
-                          Expanded(child: Container(height: 2, color: Colors.white24)),
-                          _stepDot(3, false, "Tractá\nRealizada"),
-                        ],
-                      ),
+                      child: _buildStepper(),
                     ),
-
                     const SizedBox(height: 16),
 
                     Expanded(
@@ -279,20 +275,21 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
                     ),
 
                     AnimatedOpacity(
-                      opacity: ambosSeleccionados ? 1.0 : 0.35,
+                      opacity: ambos ? 1.0 : 0.35,
                       duration: const Duration(milliseconds: 200),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: FilledButton.icon(
-                            onPressed: ambosSeleccionados ? _realizarTracta : null,
+                            onPressed: ambos ? _realizarTracta : null,
                             icon: const Icon(Icons.local_shipping),
                             label: const Text("Realizar Tractá"),
                             style: FilledButton.styleFrom(
                               backgroundColor: Colors.green,
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
                         ),
@@ -305,41 +302,46 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
     );
   }
 
-  Widget _stepDot(int num, bool active, String label) {
+  Widget _buildStepper() {
+    return Row(
+      children: [
+        _stepDot(1, false, "Conductor\n+ Vehículo", done: true),
+        Expanded(child: Container(height: 2, color: Colors.green)),
+        _stepDot(2, true, "Asignar\nViaje"),
+        Expanded(child: Container(height: 2, color: Colors.white24)),
+        _stepDot(3, false, "Tractá\nRealizada"),
+      ],
+    );
+  }
+
+  Widget _stepDot(int num, bool active, String label, {bool done = false}) {
     return Column(
       children: [
         Container(
           width: 32, height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: active ? Colors.green : (num < 2 ? Colors.green.withOpacity(0.3) : Colors.white12),
+            color: done
+                ? Colors.green.withOpacity(0.3)
+                : active ? Colors.green : Colors.white12,
             border: Border.all(
-              color: active ? Colors.green : (num < 2 ? Colors.green.withOpacity(0.5) : Colors.white24),
-              width: 2,
-            ),
+              color: done || active ? Colors.green : Colors.white24, width: 2),
           ),
           child: Center(
-            child: num < 2
+            child: done
                 ? const Icon(Icons.check, color: Colors.white, size: 14)
-                : Text(
-                    "$num",
+                : Text("$num",
                     style: TextStyle(
-                      color: active ? Colors.white : Colors.white54,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
+                        color: active ? Colors.white : Colors.white54,
+                        fontWeight: FontWeight.bold, fontSize: 13)),
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 10,
-            color: active ? Colors.green : Colors.white38,
-          ),
-        ),
+        Text(label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontSize: 10,
+                color: active ? Colors.green : Colors.white38)),
       ],
     );
   }
@@ -350,8 +352,8 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHeader("Vehículos con conductor", Icons.local_shipping, vehiculosAfiliados.length),
-          ..._buildVehiculosList(),
+          _sectionHeader("Afiliaciones (Conductor + Vehículo)", Icons.link, afiliaciones.length),
+          ..._buildAfiliacionesList(),
           const SizedBox(height: 20),
           _sectionHeader("Viajes disponibles", Icons.route, viajesSinAsignar.length),
           ..._buildViajesList(),
@@ -371,10 +373,10 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionHeader("Vehículos con conductor", Icons.local_shipping, vehiculosAfiliados.length),
+                _sectionHeader("Afiliaciones\n(Conductor + Vehículo)", Icons.link, afiliaciones.length),
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Column(children: _buildVehiculosList()),
+                    child: Column(children: _buildAfiliacionesList()),
                   ),
                 ),
               ],
@@ -406,33 +408,36 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
         children: [
           Icon(icon, color: Colors.white70, size: 18),
           const SizedBox(width: 8),
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Expanded(
+            child: Text(title,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
-            child: Text("$count", style: const TextStyle(fontSize: 12, color: Colors.white70)),
+            decoration: BoxDecoration(
+                color: Colors.white10, borderRadius: BorderRadius.circular(12)),
+            child: Text("$count",
+                style: const TextStyle(fontSize: 12, color: Colors.white70)),
           ),
         ],
       ),
     );
   }
 
-  List<Widget> _buildVehiculosList() {
-    if (vehiculosAfiliados.isEmpty) {
+  List<Widget> _buildAfiliacionesList() {
+    if (afiliaciones.isEmpty) {
       return [
         LiquidGlassCard(
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                const Icon(Icons.local_shipping_outlined, color: Colors.white38, size: 40),
+                const Icon(Icons.link_off, color: Colors.white38, size: 40),
                 const SizedBox(height: 12),
-                const Text(
-                  "No hay vehículos afiliados a un conductor.\nVe al Paso 1 para afiliar.",
-                  style: TextStyle(color: Colors.white60),
-                  textAlign: TextAlign.center,
-                ),
+                const Text("No hay afiliaciones conductor+vehículo.\nVe al Paso 1.",
+                    style: TextStyle(color: Colors.white60),
+                    textAlign: TextAlign.center),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed: () => Navigator.pushReplacement(
@@ -448,7 +453,7 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
         ),
       ];
     }
-    return vehiculosAfiliados.map((v) => _vehiculoCard(v as Map<String, dynamic>)).toList();
+    return afiliaciones.map((v) => _afiliacionCard(v as Map<String, dynamic>)).toList();
   }
 
   List<Widget> _buildViajesList() {
@@ -461,11 +466,8 @@ class _TractaStep2ScreenState extends State<TractaStep2Screen> {
               children: [
                 const Icon(Icons.route_outlined, color: Colors.white38, size: 40),
                 const SizedBox(height: 12),
-                const Text(
-                  "No hay viajes sin asignar",
-                  style: TextStyle(color: Colors.white60),
-                  textAlign: TextAlign.center,
-                ),
+                const Text("No hay viajes sin asignar",
+                    style: TextStyle(color: Colors.white60), textAlign: TextAlign.center),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: () async {
