@@ -55,7 +55,7 @@ class UserAvatar extends StatelessWidget {
       barrierLabel: "panel",
       barrierColor: Colors.black.withOpacity(0.5),
       transitionDuration: const Duration(milliseconds: 280),
-      pageBuilder: (_, __, ___) => const _UserProfilePanel(),
+      pageBuilder: (_, _, _) => const _UserProfilePanel(),
       transitionBuilder: (context, anim, _, child) {
         final curved = CurvedAnimation(
           parent: anim,
@@ -236,7 +236,7 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
                               Switch(
                                 value: theme.isDark,
                                 onChanged: (_) => theme.toggle(),
-                                activeColor: color,
+                                activeThumbColor: color,
                                 thumbColor: const WidgetStatePropertyAll(
                                     Colors.white),
                               ),

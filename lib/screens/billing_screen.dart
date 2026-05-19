@@ -116,7 +116,7 @@ class BillingScreen extends StatelessWidget {
                                                 amount: "\$${v["total"] ?? 0}",
                                                 color: const Color(0xFF4B2E83),
                                               ))
-                                          .toList(),
+                                          ,
 
                                     const SizedBox(height: 20),
 
@@ -141,7 +141,7 @@ class BillingScreen extends StatelessWidget {
                                                 amount: "\$${d["total"] ?? 0}",
                                                 color: const Color(0xFF27AE60),
                                               ))
-                                          .toList(),
+                                          ,
 
                                     const SizedBox(height: 24),
                                   ],

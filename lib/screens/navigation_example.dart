@@ -1,8 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/session.dart';
-import 'package:provider/provider.dart';
-import '../providers/theme_provider.dart';
 import '../widgets/liquid_background.dart';
 import '../widgets/liquid_glass_card.dart';
 import '../widgets/user_avatar.dart';
