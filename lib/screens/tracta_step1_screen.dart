@@ -230,7 +230,7 @@ class _TractaStep1ScreenState extends State<TractaStep1Screen> {
             _sectionHeader("Conductores", Icons.person, conductores.length),
             ..._conductoresList(),
             const SizedBox(height: 16),
-            _sectionHeader("Vehículos sin afiliar", Icons.local_shipping, vehiculosSinAfiliar.length),
+            _sectionHeader("Vehículos disponibles", Icons.local_shipping, vehiculosSinAfiliar.length),
             ..._vehiculosList(),
             const SizedBox(height: 80),
           ],
@@ -260,7 +260,7 @@ class _TractaStep1ScreenState extends State<TractaStep1Screen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _sectionHeader("Vehículos sin afiliar", Icons.local_shipping,
+                  _sectionHeader("Vehículos disponibles", Icons.local_shipping,
                       vehiculosSinAfiliar.length),
                   Expanded(
                     child: SingleChildScrollView(
@@ -320,7 +320,7 @@ class _TractaStep1ScreenState extends State<TractaStep1Screen> {
               children: [
                 const Icon(Icons.local_shipping_outlined, color: Colors.white38, size: 40),
                 const SizedBox(height: 12),
-                const Text("No hay vehículos sin afiliar",
+                const Text("No hay vehículos disponibles",
                     style: TextStyle(color: Colors.white60), textAlign: TextAlign.center),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(

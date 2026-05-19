@@ -416,13 +416,25 @@ def update_trip_status(trip_id: int, status: str):
 
 @app.get("/vehicles/{user_id}/sin-afiliar")
 def get_vehicles_sin_afiliar_v2(user_id: int):
+    """
+    Devuelve los vehículos DISPONIBLES para una nueva tractá:
+      - Vehículos nunca afiliados (sin driver_id), Y
+      - Vehículos afiliados cuya tractá ya FINALIZÓ o fue CANCELADA
+        (es decir, que NO tienen ningún viaje activo: 'Asignado' o 'En ruta').
+    El historial de afiliaciones y viajes anteriores NO se modifica.
+    """
     with engine.connect() as conn:
         rows = conn.execute(
             text("""
-                SELECT id, placa, marca, modelo, color, apodo
-                FROM vehicles
-                WHERE user_id = :user_id
-                  AND (driver_id IS NULL OR driver_id = 0)
+                SELECT v.id, v.placa, v.marca, v.modelo, v.color, v.apodo
+                FROM vehicles v
+                WHERE v.user_id = :user_id
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM trips t
+                      WHERE t.vehiculo = v.placa
+                        AND t.trip_status IN ('Asignado', 'En ruta')
+                  )
             """),
             {"user_id": user_id}
         ).fetchall()
