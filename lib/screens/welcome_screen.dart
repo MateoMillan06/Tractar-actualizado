@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../widgets/liquid_background.dart';
 import '../widgets/liquid_glass_card.dart';
 import 'login_screen.dart';
-import 'register_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -56,27 +55,6 @@ class WelcomeScreen extends StatelessWidget {
                     padding: EdgeInsets.symmetric(vertical: 14),
                     child: Text(
                       "Ingresar usuario",
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              SizedBox(
-                width: 280,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RegisterScreen(),
-                    ),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Text(
-                      "Crear usuario",
                       style: TextStyle(fontSize: 18),
                     ),
                   ),
