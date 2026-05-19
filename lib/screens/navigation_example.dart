@@ -52,6 +52,7 @@ class _NavigationExampleState extends State<NavigationExample> {
     ];
 
     final appBar = AppBar(
+      automaticallyImplyLeading: false,
       toolbarHeight: isMobile ? 70 : 92,
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
