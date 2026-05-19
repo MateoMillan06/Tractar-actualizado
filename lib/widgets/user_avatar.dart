@@ -387,36 +387,55 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
 
                       const SizedBox(height: 16),
 
-                      // ── Cambiar usuario ────────────────────
+                      // ── Cerrar sesión ──────────────────────
                       SizedBox(
                         width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            // Limpiar tema del usuario al cerrar sesión
-                            context.read<ThemeProvider>().clearUser();
-                            Navigator.pop(context);
-                            Session.userId   = null;
-                            Session.username = null;
-                            Session.role     = null;
-                            Session.status   = null;
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              '/',
-                              (route) => false,
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: textColor,
-                            side: BorderSide(color: divColor),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFE53935),
+                                  Color(0xFFB71C1C),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                               borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFE53935).withOpacity(0.35),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () => _confirmLogout(context),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.logout_rounded,
+                                        size: 20, color: Colors.white),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      "Cerrar sesión",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                          icon: const Icon(Icons.switch_account,
-                              size: 18, color: textColor),
-                          label: const Text("Cambiar usuario",
-                              style: TextStyle(color: textColor)),
                         ),
                       ),
 
@@ -429,6 +448,43 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
           ),
         ),
       ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "logout",
+      barrierColor: Colors.black.withOpacity(0.55),
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (_, _, _) => const SizedBox.shrink(),
+      transitionBuilder: (ctx, anim, _, _) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutBack);
+        return Transform.scale(
+          scale: 0.85 + (curved.value * 0.15),
+          child: Opacity(
+            opacity: anim.value.clamp(0.0, 1.0),
+            child: _LogoutConfirmDialog(
+              onConfirm: () {
+                Navigator.pop(ctx); // cierra diálogo
+                context.read<ThemeProvider>().clearUser();
+                Navigator.pop(context); // cierra panel
+                Session.userId   = null;
+                Session.username = null;
+                Session.role     = null;
+                Session.status   = null;
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/',
+                  (route) => false,
+                );
+              },
+              onCancel: () => Navigator.pop(ctx),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -452,6 +508,163 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
             const Spacer(),
             Icon(Icons.chevron_right, color: Colors.white38, size: 18),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Diálogo de confirmación de cierre de sesión ─────────────────
+class _LogoutConfirmDialog extends StatelessWidget {
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  const _LogoutConfirmDialog({
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDark;
+    final bg = isDark
+        ? const Color(0xFF1B1B3A)
+        : const Color(0xFF1B3A55);
+
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(22),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              width: 320,
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+              decoration: BoxDecoration(
+                color: bg.withOpacity(0.92),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE53935), Color(0xFFB71C1C)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFE53935).withOpacity(0.45),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.logout_rounded,
+                        color: Colors.white, size: 30),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    "¿Cerrar sesión?",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Tu sesión actual se cerrará y volverás a la pantalla de inicio.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 13.5,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: onCancel,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: BorderSide(
+                                color: Colors.white.withOpacity(0.25)),
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text("Cancelar",
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFE53935),
+                                  Color(0xFFB71C1C),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFE53935)
+                                      .withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: onConfirm,
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 13),
+                                child: Center(
+                                  child: Text(
+                                    "Cerrar sesión",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
