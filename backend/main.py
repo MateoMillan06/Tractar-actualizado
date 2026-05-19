@@ -157,7 +157,7 @@ def get_driver_affiliations(driver_id: int):
     with engine.connect() as conn:
         result = conn.execute(
             text("""
-                SELECT
+                SELECT DISTINCT
                     v.id AS vehicle_id,
                     v.placa,
                     v.marca,
@@ -167,6 +167,18 @@ def get_driver_affiliations(driver_id: int):
                 FROM vehicles v
                 JOIN users u ON v.user_id = u.id
                 WHERE v.driver_id = :driver_id
+                UNION
+                SELECT DISTINCT
+                    v.id AS vehicle_id,
+                    v.placa,
+                    v.marca,
+                    v.modelo,
+                    v.color,
+                    u.username AS propietario
+                FROM vehicles v
+                JOIN users u ON v.user_id = u.id
+                JOIN vehicle_driver vd ON vd.vehicle_id = v.id
+                WHERE vd.driver_id = :driver_id
             """),
             {"driver_id": driver_id}
         )
@@ -323,7 +335,7 @@ def driver_kpis(driver_id: int):
                     SUM(trip_status='Asignado' OR trip_status='En ruta') AS active,
                     SUM(trip_status='Finalizado') AS completed,
                     SUM(trip_status='Cancelado') AS cancelled,
-                    COALESCE(SUM(CAST(flete AS DECIMAL(10,2))),0) AS income
+                    COALESCE(SUM(CASE WHEN trip_status='Finalizado' THEN CAST(flete AS DECIMAL(10,2)) ELSE 0 END), 0) AS income
                 FROM trips
                 WHERE driver_id=:driver_id
             """),
@@ -341,10 +353,17 @@ def driver_trips(driver_id: int, status: str = "Todos"):
     with engine.connect() as conn:
 
         query = """
-            SELECT t.*
+            SELECT t.*, v.placa
             FROM trips t
             JOIN vehicles v ON t.vehiculo = v.placa
-            WHERE v.driver_id = :driver_id
+            WHERE (
+                v.driver_id = :driver_id
+                OR EXISTS (
+                    SELECT 1 FROM vehicle_driver vd
+                    WHERE vd.vehicle_id = v.id AND vd.driver_id = :driver_id
+                )
+                OR t.driver_id = :driver_id
+            )
         """
 
         params = {"driver_id": driver_id}
@@ -948,6 +967,44 @@ def get_driver_profile(driver_id: int):
             ).fetchall()
 
         data["vehicles"] = [dict(v._mapping) for v in vehicles]
+
+        # Historial de tractás del conductor
+        try:
+            tractas = conn.execute(
+                text("""
+                    SELECT t.id, t.origen, t.destino, t.flete, t.trip_status,
+                           v.placa, v.apodo
+                    FROM trips t
+                    LEFT JOIN vehicles v ON v.placa = t.vehiculo
+                    WHERE t.driver_id = :driver_id
+                       OR v.driver_id = :driver_id
+                       OR EXISTS (
+                           SELECT 1 FROM vehicle_driver vd
+                           WHERE vd.vehicle_id = v.id AND vd.driver_id = :driver_id
+                       )
+                    ORDER BY t.id DESC
+                """),
+                {"driver_id": driver_id}
+            ).fetchall()
+            data["tractas"] = [dict(r._mapping) for r in tractas]
+        except Exception:
+            data["tractas"] = []
+
+        # Ingresos totales solo de tractás Finalizadas
+        try:
+            income_row = conn.execute(
+                text("""
+                    SELECT COALESCE(SUM(CAST(flete AS DECIMAL(10,2))), 0) AS income
+                    FROM trips
+                    WHERE driver_id = :driver_id
+                      AND trip_status = 'Finalizado'
+                """),
+                {"driver_id": driver_id}
+            ).fetchone()
+            data["income"] = float(income_row._mapping["income"])
+        except Exception:
+            data["income"] = 0.0
+
     return {"success": True, "driver": data}
 
 
@@ -967,6 +1024,11 @@ def get_driver_tractas(driver_id: int):
                 LEFT JOIN vehicles v ON v.placa = t.vehiculo
                 LEFT JOIN users u ON u.id = v.user_id
                 WHERE t.driver_id = :driver_id
+                   OR v.driver_id = :driver_id
+                   OR EXISTS (
+                       SELECT 1 FROM vehicle_driver vd
+                       WHERE vd.vehicle_id = v.id AND vd.driver_id = :driver_id
+                   )
                 ORDER BY t.id ASC
             """),
             {"driver_id": driver_id}

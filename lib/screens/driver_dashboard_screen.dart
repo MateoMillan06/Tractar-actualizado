@@ -361,7 +361,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   _statusChip(status),
                 ]),
                 const SizedBox(height: 10),
-                Text("Vehículo: ${trip["vehiculo"]}   •   Flete: \$${trip["flete"] ?? 0}",
+                Text("Vehículo: ${trip["placa"] ?? trip["vehiculo"] ?? "-"}   •   Flete: \$${trip["flete"] ?? 0}",
                   style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 12)),
                 if (status == "Asignado" || status == "En ruta")
                   Padding(
@@ -395,7 +395,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                     Text("${trip["origen"]} → ${trip["destino"]}",
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 4),
-                    Text("Vehículo: ${trip["vehiculo"]}   •   Flete: \$${trip["flete"] ?? 0}",
+                    Text("Vehículo: ${trip["placa"] ?? trip["vehiculo"] ?? "-"}   •   Flete: \$${trip["flete"] ?? 0}",
                       style: TextStyle(color: Colors.white.withOpacity(0.55), fontSize: 13)),
                   ],
                 )),
