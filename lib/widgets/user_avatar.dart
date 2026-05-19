@@ -89,7 +89,9 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
   Future<void> _loadTractas() async {
     if (_loadingTractas) return;
     setState(() { _loadingTractas = true; });
-    final result = await ApiService.getTractas();
+    final result = Session.role == "conductor"
+        ? await ApiService.getDriverTractas()
+        : await ApiService.getTractas();
     setState(() {
       _tractas = result;
       _loadingTractas = false;
@@ -248,10 +250,9 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
                       const SizedBox(height: 20),
 
                       // ── Historial de Tractás ───────────────
-                      if (Session.role != "conductor") ...[
-                        Divider(color: divColor),
-                        const SizedBox(height: 12),
-                        InkWell(
+                      Divider(color: divColor),
+                      const SizedBox(height: 12),
+                      InkWell(
                           onTap: () {
                             setState(() => _tractasExpanded = !_tractasExpanded);
                             if (_tractasExpanded) _loadTractas();
@@ -343,7 +344,6 @@ class _UserProfilePanelState extends State<_UserProfilePanel> {
                             ),
                         ],
                         const SizedBox(height: 4),
-                      ],
 
                       // ── Reporte de Tractás ──────────────────
                       if (Session.role != "conductor") ...[

@@ -102,14 +102,23 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                                         _profileCard(),
                                         const SizedBox(height: 16),
                                         _vehiclesCard(),
+                                        const SizedBox(height: 16),
+                                        _tractasCard(),
                                         const SizedBox(height: 24),
                                       ])
-                                    : Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                    : Column(
                                         children: [
-                                          Expanded(child: _profileCard()),
-                                          const SizedBox(width: 20),
-                                          Expanded(child: _vehiclesCard()),
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(child: _profileCard()),
+                                              const SizedBox(width: 20),
+                                              Expanded(child: _vehiclesCard()),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 20),
+                                          _tractasCard(),
+                                          const SizedBox(height: 24),
                                         ],
                                       ),
                               ),
@@ -265,6 +274,142 @@ class _DriverDetailScreenState extends State<DriverDetailScreen> {
                                     fontSize: 12, color: Colors.white54),
                               ),
                             ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tractasCard() {
+    final tractas = (driver?["tractas"] as List?) ?? [];
+    final income  = driver?["income"] ?? 0.0;
+
+    const statusColors = {
+      "Asignado":   Color(0xFF5DADE2),
+      "En ruta":    Color(0xFFF39C12),
+      "Finalizado": Color(0xFF27AE60),
+      "Cancelado":  Color(0xFFE74C3C),
+    };
+
+    return LiquidGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.route, color: Colors.white70, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Historial de tractás (${tractas.length})",
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF39C12).withOpacity(0.15),
+                    border: Border.all(color: const Color(0xFFF39C12).withOpacity(0.4)),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.attach_money, color: Color(0xFFF39C12), size: 14),
+                      Text(
+                        "\$${income.toStringAsFixed(0)}",
+                        style: const TextStyle(
+                          color: Color(0xFFF39C12),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (tractas.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    children: [
+                      Icon(Icons.route, color: Colors.white38, size: 40),
+                      SizedBox(height: 10),
+                      Text("Sin tractás registradas",
+                          style: TextStyle(color: Colors.white54)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...tractas.asMap().entries.map((e) {
+                final i = e.key;
+                final t = e.value as Map;
+                final status = t["trip_status"]?.toString() ?? "";
+                final statusColor = statusColors[status] ?? Colors.white38;
+                final placa = t["placa"]?.toString() ?? t["vehiculo"]?.toString() ?? "-";
+                final apodo = t["apodo"]?.toString().isNotEmpty == true ? t["apodo"] : null;
+                final flete = t["flete"] ?? 0;
+
+                return Column(
+                  children: [
+                    if (i > 0) const Divider(color: Colors.white10, height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(9),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.route, color: statusColor, size: 16),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "${t["origen"] ?? "-"} → ${t["destino"] ?? "-"}",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                "${apodo != null ? "$apodo · " : ""}$placa   •   \$$flete",
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.white54),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: statusColor.withOpacity(0.15),
+                            border: Border.all(color: statusColor.withOpacity(0.4)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            status,
+                            style: TextStyle(
+                                color: statusColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600),
                           ),
                         ),
                       ],
